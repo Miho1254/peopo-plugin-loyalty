@@ -1,44 +1,40 @@
 <?php
 /*
-Plugin Name: Peopo Loyalty
-Description: .
-Version: 1.0.0
-Author: Miho
-Text Domain: peopo-loyalty
+Plugin Name:       Peopo Loyalty
+Description:       Mẫu plugin WordPress tiêu chuẩn với các ví dụ hook cơ bản cho cả backend lẫn frontend.
+Version:           1.0.0
+Author:            Miho
+Text Domain:       peopo-loyalty
+Domain Path:       /languages
 Requires at least: 6.0
-Requires PHP: 7.4
+Requires PHP:      7.4
 */
 
-if (!defined("ABSPATH")) {
-    exit();
-} // chặn truy cập trực tiếp
+// Chặn truy cập trực tiếp để tránh người dùng gọi file plugin từ trình duyệt.
+if (!defined('ABSPATH')) {
+    exit;
+}
 
-// Autoload đơn giản (hoặc dùng composer nếu thích)
-require_once __DIR__ . "/includes/class-peopo-plugin-loyalty.php";
+// ===== Cấu hình cơ bản của plugin =====
+define('PEOPO_LOYALTY_VERSION', '1.0.0');
+define('PEOPO_LOYALTY_PATH', plugin_dir_path(__FILE__));
+define('PEOPO_LOYALTY_URL', plugin_dir_url(__FILE__));
+define('PEOPO_LOYALTY_BASENAME', plugin_basename(__FILE__));
 
-// Hằng số tiện dụng
-define("MIHO_AWE_VERSION", "1.0.0");
-define("MIHO_AWE_PATH", plugin_dir_path(__FILE__));
-define("MIHO_AWE_URL", plugin_dir_url(__FILE__));
+// ===== Nạp class chính của plugin =====
+require_once PEOPO_LOYALTY_PATH . 'includes/class-peopo-plugin-loyalty.php';
 
-// Hooks vòng đời
-register_activation_hook(__FILE__, function () {
-    // ví dụ: tạo option mặc định
-    add_option("peopo-loyalty-enabled", true);
-});
-register_deactivation_hook(__FILE__, function () {
-    // ví dụ: dọn tạm, không xóa dữ liệu người dùng
-});
+// ===== Các hook vòng đời (activate/deactivate) =====
+register_activation_hook(__FILE__, [\MihoMemberShip\Plugin::class, 'activate']);
+register_deactivation_hook(__FILE__, [\MihoMemberShip\Plugin::class, 'deactivate']);
 
-// Khởi động plugin
-add_action("plugins_loaded", function () {
-    // nạp textdomain cho i18n
-    load_plugin_textdomain(
-        "peopo-loyalty",
-        false,
-        dirname(plugin_basename(__FILE__)) . "/languages",
-    );
+// ===== Khởi động plugin =====
+/**
+ * WordPress sẽ gọi hàm này sau khi plugin được nạp (plugins_loaded).
+ * Trong hàm này ta khởi tạo singleton chính và chạy toàn bộ logic.
+ */
+function peopo_loyalty_run() {
+    \MihoMemberShip\Plugin::instance()->run();
+}
 
-    // boot class chính
-    \MihoMemberShip\Plugin::instance();
-});
+add_action('plugins_loaded', 'peopo_loyalty_run');
