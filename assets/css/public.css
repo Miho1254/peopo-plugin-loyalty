@@ -1,0 +1,16 @@
+/*
+ * Public stylesheet mẫu cho plugin Peopo Loyalty.
+ * Hãy thay thế nội dung này bằng style thực tế khi phát triển.
+ */
+
+.peopo-loyalty-box {
+    border: 2px solid #2b6cb0;
+    border-radius: 8px;
+    padding: 20px;
+    background: #ebf8ff;
+}
+
+.peopo-loyalty-box__title {
+    margin: 0 0 8px;
+    font-weight: 700;
+}

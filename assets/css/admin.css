@@ -1,0 +1,11 @@
+/*
+ * Admin stylesheet mẫu cho plugin Peopo Loyalty.
+ * Tại đây bạn có thể thêm style dành riêng cho trang quản trị của plugin.
+ */
+
+.peopo-loyalty-box {
+    /* Ví dụ: style dùng chung giữa frontend/backend. */
+    border: 1px dashed #ccd0d4;
+    padding: 16px;
+    background: #f6f7f7;
+}
