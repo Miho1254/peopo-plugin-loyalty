@@ -33,6 +33,11 @@ final class Plugin
     private string $version;
 
     /**
+     * Option key lưu trữ catalog phần thưởng.
+     */
+    private string $reward_option_key = 'peopo_loyalty_rewards';
+
+    /**
      * Trạng thái đã đăng ký hook chưa, để tránh gọi run() nhiều lần.
      */
     private bool $booted = false;
@@ -75,6 +80,7 @@ final class Plugin
         // ===== Hook phía backend (admin) =====
         add_action('admin_menu', [$this, 'register_admin_menu']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        add_action('admin_init', [$this, 'handle_admin_actions']);
 
         // ===== Hook phía frontend =====
         add_action('wp_enqueue_scripts', [$this, 'enqueue_public_assets']);
@@ -462,11 +468,322 @@ final class Plugin
      */
     public function render_admin_page(): void
     {
+        $rewards = $this->get_reward_items();
+        $current_action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
+        $editing_id = isset($_GET['reward_id']) ? sanitize_text_field(wp_unslash($_GET['reward_id'])) : '';
+        $is_edit = 'edit' === $current_action && isset($rewards[$editing_id]);
+        $editing_reward = $is_edit ? $rewards[$editing_id] : [
+            'id'          => '',
+            'name'        => '',
+            'type'        => 'digital',
+            'points'      => 0,
+            'description' => '',
+        ];
+
+        $message_key = isset($_GET['message']) ? sanitize_key(wp_unslash($_GET['message'])) : '';
+        $messages = [
+            'created' => __('Đã thêm phần thưởng mới.', 'peopo-loyalty'),
+            'updated' => __('Đã cập nhật phần thưởng.', 'peopo-loyalty'),
+            'deleted' => __('Đã xoá phần thưởng.', 'peopo-loyalty'),
+            'error'   => __('Có lỗi xảy ra, vui lòng thử lại.', 'peopo-loyalty'),
+        ];
+
         ?>
-        <div class="wrap">
-            <h1><?php esc_html_e('Cấu hình Peopo Loyalty', 'peopo-loyalty'); ?></h1>
-            <p><?php esc_html_e('Đây là trang cấu hình mẫu. Hãy thay thế nội dung này bằng form cài đặt thực tế.', 'peopo-loyalty'); ?></p>
+        <div class="wrap peopo-loyalty-admin">
+            <h1><?php esc_html_e('Quản lý phần thưởng Loyalty', 'peopo-loyalty'); ?></h1>
+            <p class="peopo-loyalty-admin__intro">
+                <?php esc_html_e('Tạo catalog phần thưởng để khách hàng quy đổi điểm. Bạn có thể thêm, chỉnh sửa hoặc xoá từng phần thưởng ngay tại đây.', 'peopo-loyalty'); ?>
+            </p>
+
+            <?php if ($message_key && isset($messages[$message_key])) : ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><?php echo esc_html($messages[$message_key]); ?></p>
+                </div>
+            <?php endif; ?>
+
+            <div class="peopo-loyalty-admin__grid">
+                <section class="peopo-loyalty-admin__card">
+                    <header>
+                        <h2>
+                            <?php
+                            echo $is_edit
+                                ? esc_html__('Chỉnh sửa phần thưởng', 'peopo-loyalty')
+                                : esc_html__('Thêm phần thưởng mới', 'peopo-loyalty');
+                            ?>
+                        </h2>
+                        <p>
+                            <?php esc_html_e('Đặt tên, loại phần thưởng và số điểm quy đổi tương ứng.', 'peopo-loyalty'); ?>
+                        </p>
+                    </header>
+
+                    <form method="post" class="peopo-loyalty-admin__form">
+                        <?php wp_nonce_field('peopo_loyalty_save_reward'); ?>
+                        <input type="hidden" name="peopo_loyalty_action" value="<?php echo $is_edit ? 'update' : 'create'; ?>">
+                        <?php if ($is_edit) : ?>
+                            <input type="hidden" name="reward_id" value="<?php echo esc_attr($editing_reward['id']); ?>">
+                        <?php endif; ?>
+
+                        <div class="peopo-loyalty-admin__field">
+                            <label for="reward_name" class="peopo-loyalty-admin__label"><?php esc_html_e('Tên phần thưởng', 'peopo-loyalty'); ?></label>
+                            <input type="text" id="reward_name" name="reward_name" class="regular-text" required value="<?php echo esc_attr($editing_reward['name']); ?>">
+                        </div>
+
+                        <div class="peopo-loyalty-admin__field">
+                            <label for="reward_type" class="peopo-loyalty-admin__label"><?php esc_html_e('Loại phần thưởng', 'peopo-loyalty'); ?></label>
+                            <select id="reward_type" name="reward_type">
+                                <option value="digital" <?php selected('digital', $editing_reward['type']); ?>><?php esc_html_e('Phi vật lý (voucher, ưu đãi)', 'peopo-loyalty'); ?></option>
+                                <option value="physical" <?php selected('physical', $editing_reward['type']); ?>><?php esc_html_e('Vật lý (quà tặng, sản phẩm)', 'peopo-loyalty'); ?></option>
+                            </select>
+                        </div>
+
+                        <div class="peopo-loyalty-admin__field">
+                            <label for="reward_points" class="peopo-loyalty-admin__label"><?php esc_html_e('Điểm quy đổi', 'peopo-loyalty'); ?></label>
+                            <input type="number" id="reward_points" name="reward_points" class="small-text" min="0" step="1" required value="<?php echo esc_attr((int) $editing_reward['points']); ?>">
+                        </div>
+
+                        <div class="peopo-loyalty-admin__field">
+                            <label for="reward_description" class="peopo-loyalty-admin__label"><?php esc_html_e('Mô tả / điều kiện', 'peopo-loyalty'); ?></label>
+                            <textarea id="reward_description" name="reward_description" rows="4" class="large-text"><?php echo esc_textarea($editing_reward['description']); ?></textarea>
+                        </div>
+
+                        <p class="submit">
+                            <button type="submit" class="button button-primary">
+                                <?php
+                                echo $is_edit
+                                    ? esc_html__('Cập nhật phần thưởng', 'peopo-loyalty')
+                                    : esc_html__('Thêm phần thưởng', 'peopo-loyalty');
+                                ?>
+                            </button>
+                            <?php if ($is_edit) : ?>
+                                <a class="button" href="<?php echo esc_url(remove_query_arg(['action', 'reward_id'])); ?>">
+                                    <?php esc_html_e('Huỷ chỉnh sửa', 'peopo-loyalty'); ?>
+                                </a>
+                            <?php endif; ?>
+                        </p>
+                    </form>
+                </section>
+
+                <section class="peopo-loyalty-admin__card">
+                    <header>
+                        <h2><?php esc_html_e('Danh sách phần thưởng', 'peopo-loyalty'); ?></h2>
+                        <p><?php esc_html_e('Quản trị nhanh các phần thưởng đang mở cho khách hàng.', 'peopo-loyalty'); ?></p>
+                    </header>
+
+                    <table class="peopo-loyalty-admin__table">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e('Tên phần thưởng', 'peopo-loyalty'); ?></th>
+                                <th><?php esc_html_e('Loại', 'peopo-loyalty'); ?></th>
+                                <th><?php esc_html_e('Điểm', 'peopo-loyalty'); ?></th>
+                                <th><?php esc_html_e('Mô tả', 'peopo-loyalty'); ?></th>
+                                <th class="peopo-loyalty-admin__table-actions"><?php esc_html_e('Thao tác', 'peopo-loyalty'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($rewards)) : ?>
+                                <tr>
+                                    <td colspan="5" class="peopo-loyalty-admin__empty">
+                                        <?php esc_html_e('Chưa có phần thưởng nào, hãy thêm phần thưởng đầu tiên.', 'peopo-loyalty'); ?>
+                                    </td>
+                                </tr>
+                            <?php else : ?>
+                                <?php foreach ($rewards as $reward) : ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?php echo esc_html($reward['name']); ?></strong>
+                                        </td>
+                                        <td><?php echo esc_html($this->get_reward_type_label($reward['type'])); ?></td>
+                                        <td>
+                                            <strong><?php echo esc_html(number_format_i18n((int) $reward['points'])); ?></strong>
+                                            <span class="peopo-loyalty-admin__points-label"><?php esc_html_e('điểm', 'peopo-loyalty'); ?></span>
+                                        </td>
+                                        <td><?php echo esc_html($reward['description']); ?></td>
+                                        <td class="peopo-loyalty-admin__table-actions">
+                                            <?php
+                                            $edit_url = add_query_arg(
+                                                [
+                                                    'action'    => 'edit',
+                                                    'reward_id' => rawurlencode($reward['id']),
+                                                ]
+                                            );
+                                            $delete_url = wp_nonce_url(
+                                                add_query_arg(
+                                                    [
+                                                        'action'    => 'delete',
+                                                        'reward_id' => rawurlencode($reward['id']),
+                                                    ]
+                                                ),
+                                                'peopo_loyalty_delete_reward_' . $reward['id']
+                                            );
+                                            ?>
+                                            <a class="button button-small" href="<?php echo esc_url($edit_url); ?>"><?php esc_html_e('Sửa', 'peopo-loyalty'); ?></a>
+                                            <a class="button button-small button-link-delete" href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('<?php echo esc_js(__('Bạn có chắc muốn xoá phần thưởng này?', 'peopo-loyalty')); ?>');">
+                                                <?php esc_html_e('Xoá', 'peopo-loyalty'); ?>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+
+            <p class="peopo-loyalty-admin__note">
+                <?php esc_html_e('Gợi ý: bạn có thể kết hợp hệ thống voucher hoặc quà độc quyền để tăng trải nghiệm đổi điểm.', 'peopo-loyalty'); ?>
+            </p>
         </div>
         <?php
+    }
+
+    /**
+     * Xử lý các hành động CRUD của phần thưởng.
+     */
+    public function handle_admin_actions(): void
+    {
+        if (!is_admin()) {
+            return;
+        }
+
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+
+        if ($page !== $this->slug) {
+            return;
+        }
+
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $redirect = menu_page_url($this->slug, false);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['peopo_loyalty_action'])) {
+            check_admin_referer('peopo_loyalty_save_reward');
+
+            $action = sanitize_key(wp_unslash($_POST['peopo_loyalty_action']));
+            $name = isset($_POST['reward_name']) ? sanitize_text_field(wp_unslash($_POST['reward_name'])) : '';
+            $type = isset($_POST['reward_type']) ? sanitize_key(wp_unslash($_POST['reward_type'])) : 'digital';
+            $points = isset($_POST['reward_points']) ? max(0, (int) sanitize_text_field(wp_unslash($_POST['reward_points']))) : 0;
+            $description = isset($_POST['reward_description']) ? sanitize_textarea_field(wp_unslash($_POST['reward_description'])) : '';
+
+            if (!in_array($type, ['digital', 'physical'], true) || '' === $name) {
+                wp_safe_redirect(add_query_arg('message', 'error', $redirect));
+                exit;
+            }
+
+            $rewards = $this->get_reward_items();
+
+            if ('create' === $action) {
+                $id = wp_generate_uuid4();
+                $rewards[$id] = [
+                    'id'          => $id,
+                    'name'        => $name,
+                    'type'        => $type,
+                    'points'      => $points,
+                    'description' => $description,
+                ];
+
+                $this->save_reward_items($rewards);
+                wp_safe_redirect(add_query_arg('message', 'created', $redirect));
+                exit;
+            }
+
+            if ('update' === $action) {
+                $reward_id = isset($_POST['reward_id']) ? sanitize_text_field(wp_unslash($_POST['reward_id'])) : '';
+
+                if ('' === $reward_id || !isset($rewards[$reward_id])) {
+                    wp_safe_redirect(add_query_arg('message', 'error', $redirect));
+                    exit;
+                }
+
+                $rewards[$reward_id] = [
+                    'id'          => $reward_id,
+                    'name'        => $name,
+                    'type'        => $type,
+                    'points'      => $points,
+                    'description' => $description,
+                ];
+
+                $this->save_reward_items($rewards);
+                wp_safe_redirect(add_query_arg('message', 'updated', $redirect));
+                exit;
+            }
+        }
+
+        if (isset($_GET['action']) && 'delete' === sanitize_key(wp_unslash($_GET['action']))) {
+            $reward_id = isset($_GET['reward_id']) ? sanitize_text_field(wp_unslash($_GET['reward_id'])) : '';
+
+            if ('' === $reward_id) {
+                return;
+            }
+
+            check_admin_referer('peopo_loyalty_delete_reward_' . $reward_id);
+
+            $rewards = $this->get_reward_items();
+
+            if (!isset($rewards[$reward_id])) {
+                wp_safe_redirect(add_query_arg('message', 'error', $redirect));
+                exit;
+            }
+
+            unset($rewards[$reward_id]);
+            $this->save_reward_items($rewards);
+
+            wp_safe_redirect(add_query_arg('message', 'deleted', $redirect));
+            exit;
+        }
+    }
+
+    /**
+     * Lấy danh sách phần thưởng đã lưu.
+     */
+    private function get_reward_items(): array
+    {
+        $stored = get_option($this->reward_option_key, []);
+
+        if (!is_array($stored)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($stored as $reward) {
+            if (!is_array($reward) || empty($reward['id'])) {
+                continue;
+            }
+
+            $reward_id = (string) $reward['id'];
+
+            $normalized[$reward_id] = [
+                'id'          => $reward_id,
+                'name'        => isset($reward['name']) ? (string) $reward['name'] : '',
+                'type'        => isset($reward['type']) ? (string) $reward['type'] : 'digital',
+                'points'      => isset($reward['points']) ? (int) $reward['points'] : 0,
+                'description' => isset($reward['description']) ? (string) $reward['description'] : '',
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Lưu danh sách phần thưởng.
+     */
+    private function save_reward_items(array $rewards): void
+    {
+        update_option($this->reward_option_key, array_values($rewards));
+    }
+
+    /**
+     * Trả về nhãn hiển thị của loại phần thưởng.
+     */
+    private function get_reward_type_label(string $type): string
+    {
+        $labels = [
+            'digital'  => __('Phi vật lý', 'peopo-loyalty'),
+            'physical' => __('Vật lý', 'peopo-loyalty'),
+        ];
+
+        return $labels[$type] ?? $labels['digital'];
     }
 }
