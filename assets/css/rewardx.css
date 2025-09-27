@@ -1,158 +1,344 @@
 .rewardx-account {
-    margin-top: 2rem;
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
 }
 
 .rewardx-balance {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .rewardx-points {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #2c7be5;
+    font-size: 3rem;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 0.25rem;
+}
+
+.rewardx-balance-hint {
+    color: #475569;
+    font-size: 0.95rem;
+    margin: 0 auto;
+    max-width: 540px;
+}
+
+.rewardx-empty {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.12));
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.rewardx-empty h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+    color: #0f172a;
+}
+
+.rewardx-empty p {
+    margin: 0;
+    color: #475569;
+}
+
+.rewardx-section {
+    margin-bottom: 3rem;
+}
+
+.rewardx-section-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.rewardx-section-header h3 {
+    font-size: 1.5rem;
+    margin: 0 0 0.5rem;
+    color: #0f172a;
+}
+
+.rewardx-section-header p {
+    margin: 0;
+    color: #475569;
 }
 
 .rewardx-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 2rem;
 }
 
 .rewardx-customer-insights {
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem 1.25rem;
-    background: #f7fafc;
+    margin-bottom: 2rem;
+    padding: 1.25rem 1.5rem;
+    background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 16px;
 }
 
 .rewardx-customer-insights > div {
-    min-width: 180px;
+    min-width: 200px;
 }
 
 .rewardx-insight-label {
     display: block;
     font-size: 0.85rem;
-    color: #4a5568;
-    margin-bottom: 0.25rem;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .rewardx-insight-value {
-    font-size: 1.15rem;
-    color: #1a202c;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0f172a;
 }
 
 .rewardx-card {
     position: relative;
     background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 1rem;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border-radius: 18px;
+    box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.rewardx-card img {
+.rewardx-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
+}
+
+.rewardx-card-media {
+    position: relative;
+    background: linear-gradient(135deg, #2563eb, #38bdf8);
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.rewardx-card-media img {
     width: 100%;
-    height: 160px;
+    height: 100%;
     object-fit: cover;
-    border-radius: 8px;
+}
+
+.rewardx-card-media--empty::after {
+    content: '🎁';
+    font-family: inherit;
+    font-size: 2.5rem;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .rewardx-badge {
     position: absolute;
     top: 1rem;
     left: 1rem;
-    padding: 0.25rem 0.75rem;
+    padding: 0.4rem 0.85rem;
     border-radius: 999px;
     font-size: 0.75rem;
     color: #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(6px);
 }
 
 .rewardx-badge-physical {
-    background: #38a169;
+    background: rgba(22, 163, 74, 0.85);
 }
 
 .rewardx-badge-voucher {
-    background: #d53f8c;
+    background: rgba(217, 70, 239, 0.85);
 }
 
-.rewardx-meta {
+.rewardx-card-body {
+    padding: 1.5rem 1.5rem 0;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    color: #4a5568;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.rewardx-card-title {
+    font-size: 1.2rem;
+    margin: 0;
+    color: #0f172a;
+}
+
+.rewardx-card-description {
+    color: #475569;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.rewardx-card-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.rewardx-card-meta-item {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+}
+
+.rewardx-card-meta-item dt {
+    margin: 0 0 0.4rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+}
+
+.rewardx-card-meta-item dd {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.rewardx-card-highlight {
+    color: #2563eb;
+}
+
+.rewardx-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    background: rgba(37, 99, 235, 0.1);
+    color: #1d4ed8;
+}
+
+.rewardx-chip--soft {
+    background: rgba(16, 185, 129, 0.15);
+    color: #047857;
+}
+
+.rewardx-chip--danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+}
+
+.rewardx-card-footer {
+    padding: 1.25rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
 }
 
 .rewardx-redeem {
     align-self: flex-start;
-    background: #2c7be5;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: #fff;
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
+    padding: 0.75rem 1.75rem;
+    border-radius: 999px;
     cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.rewardx-redeem:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-weight: 600;
+    box-shadow: 0 12px 25px rgba(37, 99, 235, 0.25);
 }
 
 .rewardx-redeem:hover:not(:disabled) {
-    background: #1a5fb4;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px rgba(37, 99, 235, 0.3);
+}
+
+.rewardx-redeem:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.rewardx-card-note {
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.rewardx-card-note--danger {
+    color: #b91c1c;
 }
 
 .rewardx-ledger {
     list-style: none;
     padding: 0;
     margin: 0;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
     overflow: hidden;
+    background: #fff;
 }
 
-.rewardx-ledger li {
+.rewardx-ledger-head,
+.rewardx-ledger-row {
     display: grid;
-    grid-template-columns: 1fr 2fr 80px 100px;
+    grid-template-columns: 1.2fr 2fr 0.8fr 0.8fr;
     gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 1.25rem;
+    align-items: center;
 }
 
-.rewardx-ledger li:last-child {
-    border-bottom: none;
+.rewardx-ledger-head {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #0f172a;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+}
+
+.rewardx-ledger-row {
+    border-top: 1px solid #e2e8f0;
+}
+
+.rewardx-ledger-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: #475569;
 }
 
 .rewardx-ledger-delta {
-    font-weight: bold;
+    font-weight: 700;
     text-align: right;
 }
 
 .rewardx-ledger-delta.positive {
-    color: #38a169;
+    color: #16a34a;
 }
 
 .rewardx-ledger-delta.negative {
-    color: #e53e3e;
+    color: #dc2626;
 }
 
 .rewardx-modal {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(15, 23, 42, 0.55);
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 9999;
+    padding: 1.5rem;
 }
 
 .rewardx-modal.show {
@@ -161,33 +347,35 @@
 
 .rewardx-modal-content {
     background: #fff;
-    border-radius: 12px;
-    padding: 2rem;
-    max-width: 420px;
+    border-radius: 18px;
+    padding: 2.25rem 2rem;
+    max-width: 460px;
     width: 100%;
     position: relative;
     text-align: center;
+    box-shadow: 0 25px 45px rgba(15, 23, 42, 0.15);
 }
 
 .rewardx-modal-close {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 0.85rem;
+    right: 0.85rem;
     border: none;
     background: transparent;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     cursor: pointer;
+    color: #475569;
 }
 
 .rewardx-toast {
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
-    background: #2c7be5;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
     color: #fff;
-    padding: 0.75rem 1.5rem;
+    padding: 0.85rem 1.75rem;
     border-radius: 999px;
-    box-shadow: 0 10px 20px rgba(44, 123, 229, 0.3);
+    box-shadow: 0 18px 35px rgba(37, 99, 235, 0.35);
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.2s ease, transform 0.2s ease;
@@ -199,19 +387,51 @@
     transform: translateY(0);
 }
 
-@media (max-width: 768px) {
-    .rewardx-ledger li {
-        grid-template-columns: repeat(2, 1fr);
-        text-align: left;
-    }
-
-    .rewardx-ledger-delta,
-    .rewardx-ledger-balance {
-        text-align: left;
-    }
-
-    .rewardx-customer-insights {
+@media (max-width: 1024px) {
+    .rewardx-section-header {
         flex-direction: column;
-        gap: 1rem;
+        align-items: flex-start;
     }
 }
+
+@media (max-width: 768px) {
+    .rewardx-account {
+        padding: 0 1rem 2.5rem;
+    }
+
+    .rewardx-card-meta {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .rewardx-ledger-head,
+    .rewardx-ledger-row {
+        grid-template-columns: 1fr;
+        gap: 0.35rem;
+        text-align: left;
+    }
+
+    .rewardx-ledger-head {
+        display: none;
+    }
+
+    .rewardx-ledger-row {
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .rewardx-ledger-row span {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        font-size: 0.95rem;
+        position: relative;
+        padding-left: 0;
+    }
+
+    .rewardx-ledger-row span::before {
+        content: attr(data-title);
+        font-weight: 600;
+        color: #94a3b8;
+        margin-right: auto;
+    }
+}
+

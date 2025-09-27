@@ -10,29 +10,72 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
     <div class="rewardx-balance">
         <h2><?php esc_html_e('Điểm của bạn', 'woo-rewardx-lite'); ?></h2>
         <p class="rewardx-points"><?php echo esc_html(number_format_i18n($points)); ?></p>
+        <p class="rewardx-balance-hint"><?php esc_html_e('Đổi thưởng dễ dàng với những gợi ý được sắp xếp rõ ràng bên dưới.', 'woo-rewardx-lite'); ?></p>
     </div>
+
+    <?php if (empty($physical_rewards) && empty($voucher_rewards)) : ?>
+        <div class="rewardx-empty">
+            <h3><?php esc_html_e('Hiện chưa có phần thưởng nào khả dụng.', 'woo-rewardx-lite'); ?></h3>
+            <p><?php esc_html_e('Hãy quay lại sau hoặc tiếp tục tích điểm để nhận thêm ưu đãi hấp dẫn.', 'woo-rewardx-lite'); ?></p>
+        </div>
+    <?php endif; ?>
 
     <?php if (!empty($physical_rewards)) : ?>
         <section class="rewardx-section">
-            <h3><?php esc_html_e('Quà vật lý', 'woo-rewardx-lite'); ?></h3>
+            <div class="rewardx-section-header">
+                <div>
+                    <h3><?php esc_html_e('Quà vật lý', 'woo-rewardx-lite'); ?></h3>
+                    <p><?php esc_html_e('Những sản phẩm hiện vật nổi bật được chọn lọc cho bạn.', 'woo-rewardx-lite'); ?></p>
+                </div>
+            </div>
             <div class="rewardx-grid">
                 <?php foreach ($physical_rewards as $item) : ?>
+                    <?php
+                    $stock            = (int) $item['stock'];
+                    $is_unlimited     = $stock === -1;
+                    $is_out_of_stock  = !$is_unlimited && $stock <= 0;
+                    $has_enough_point = $points >= (int) $item['cost'];
+                    $is_disabled      = $is_out_of_stock || !$has_enough_point;
+                    ?>
                     <article class="rewardx-card" data-reward-id="<?php echo esc_attr($item['id']); ?>" data-type="physical" data-cost="<?php echo esc_attr($item['cost']); ?>">
-                        <?php if (!empty($item['thumbnail'])) : ?>
-                            <img src="<?php echo esc_url($item['thumbnail']); ?>" alt="<?php echo esc_attr($item['title']); ?>" />
-                        <?php endif; ?>
-                        <span class="rewardx-badge rewardx-badge-physical"><?php esc_html_e('Vật lý', 'woo-rewardx-lite'); ?></span>
-                        <h4><?php echo esc_html($item['title']); ?></h4>
-                        <p><?php echo esc_html($item['excerpt']); ?></p>
-                        <div class="rewardx-meta">
-                            <span class="rewardx-cost"><?php printf(esc_html__('Chi phí: %s điểm', 'woo-rewardx-lite'), esc_html(number_format_i18n($item['cost']))); ?></span>
-                            <?php if ($item['stock'] !== -1) : ?>
-                                <span class="rewardx-stock"><?php printf(esc_html__('Còn: %s', 'woo-rewardx-lite'), esc_html($item['stock'])); ?></span>
-                            <?php else : ?>
-                                <span class="rewardx-stock unlimited"><?php esc_html_e('Không giới hạn', 'woo-rewardx-lite'); ?></span>
+                        <div class="rewardx-card-media<?php echo empty($item['thumbnail']) ? ' rewardx-card-media--empty' : ''; ?>">
+                            <?php if (!empty($item['thumbnail'])) : ?>
+                                <img src="<?php echo esc_url($item['thumbnail']); ?>" alt="<?php echo esc_attr($item['title']); ?>" />
+                            <?php endif; ?>
+                            <span class="rewardx-badge rewardx-badge-physical"><?php esc_html_e('Vật lý', 'woo-rewardx-lite'); ?></span>
+                        </div>
+                        <div class="rewardx-card-body">
+                            <h4 class="rewardx-card-title"><?php echo esc_html($item['title']); ?></h4>
+                            <p class="rewardx-card-description"><?php echo esc_html($item['excerpt']); ?></p>
+                            <dl class="rewardx-card-meta">
+                                <div class="rewardx-card-meta-item">
+                                    <dt><?php esc_html_e('Chi phí', 'woo-rewardx-lite'); ?></dt>
+                                    <dd><?php echo esc_html(number_format_i18n($item['cost'])); ?></dd>
+                                </div>
+                                <div class="rewardx-card-meta-item">
+                                    <dt><?php esc_html_e('Tồn kho', 'woo-rewardx-lite'); ?></dt>
+                                    <dd>
+                                        <?php if ($is_unlimited) : ?>
+                                            <span class="rewardx-chip rewardx-chip--soft"><?php esc_html_e('Không giới hạn', 'woo-rewardx-lite'); ?></span>
+                                        <?php elseif ($is_out_of_stock) : ?>
+                                            <span class="rewardx-chip rewardx-chip--danger"><?php esc_html_e('Hết hàng', 'woo-rewardx-lite'); ?></span>
+                                        <?php else : ?>
+                                            <span class="rewardx-chip"><?php echo esc_html(number_format_i18n($stock)); ?></span>
+                                        <?php endif; ?>
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+                        <div class="rewardx-card-footer">
+                            <button class="button rewardx-redeem" data-action="physical" <?php disabled($is_disabled); ?>>
+                                <?php esc_html_e('Đổi quà', 'woo-rewardx-lite'); ?>
+                            </button>
+                            <?php if ($is_disabled && !$is_out_of_stock) : ?>
+                                <span class="rewardx-card-note"><?php esc_html_e('Bạn cần thêm điểm để đổi quà này.', 'woo-rewardx-lite'); ?></span>
+                            <?php elseif ($is_out_of_stock) : ?>
+                                <span class="rewardx-card-note rewardx-card-note--danger"><?php esc_html_e('Phần thưởng tạm thời đã hết.', 'woo-rewardx-lite'); ?></span>
                             <?php endif; ?>
                         </div>
-                        <button class="button rewardx-redeem" data-action="physical"><?php esc_html_e('Đổi quà', 'woo-rewardx-lite'); ?></button>
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -41,7 +84,12 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
 
     <?php if (!empty($voucher_rewards)) : ?>
         <section class="rewardx-section">
-            <h3><?php esc_html_e('Voucher', 'woo-rewardx-lite'); ?></h3>
+            <div class="rewardx-section-header">
+                <div>
+                    <h3><?php esc_html_e('Voucher', 'woo-rewardx-lite'); ?></h3>
+                    <p><?php esc_html_e('Tiết kiệm nhiều hơn với voucher giảm giá dành riêng cho bạn.', 'woo-rewardx-lite'); ?></p>
+                </div>
+            </div>
             <div class="rewardx-customer-insights">
                 <div>
                     <span class="rewardx-insight-label"><?php esc_html_e('Tổng giá trị đơn hàng đã mua', 'woo-rewardx-lite'); ?></span>
@@ -54,25 +102,58 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
             </div>
             <div class="rewardx-grid">
                 <?php foreach ($voucher_rewards as $item) : ?>
+                    <?php
+                    $stock            = (int) $item['stock'];
+                    $is_unlimited     = $stock === -1;
+                    $is_out_of_stock  = !$is_unlimited && $stock <= 0;
+                    $has_enough_point = $points >= (int) $item['cost'];
+                    $is_disabled      = $is_out_of_stock || !$has_enough_point;
+                    ?>
                     <article class="rewardx-card" data-reward-id="<?php echo esc_attr($item['id']); ?>" data-type="voucher" data-cost="<?php echo esc_attr($item['cost']); ?>">
-                        <?php if (!empty($item['thumbnail'])) : ?>
-                            <img src="<?php echo esc_url($item['thumbnail']); ?>" alt="<?php echo esc_attr($item['title']); ?>" />
-                        <?php endif; ?>
-                        <span class="rewardx-badge rewardx-badge-voucher"><?php esc_html_e('Voucher', 'woo-rewardx-lite'); ?></span>
-                        <h4><?php echo esc_html($item['title']); ?></h4>
-                        <p><?php echo esc_html($item['excerpt']); ?></p>
-                        <div class="rewardx-meta">
-                            <span class="rewardx-cost"><?php printf(esc_html__('Chi phí: %s điểm', 'woo-rewardx-lite'), esc_html(number_format_i18n($item['cost']))); ?></span>
-                            <?php if ($item['stock'] !== -1) : ?>
-                                <span class="rewardx-stock"><?php printf(esc_html__('Còn: %s', 'woo-rewardx-lite'), esc_html($item['stock'])); ?></span>
-                            <?php else : ?>
-                                <span class="rewardx-stock unlimited"><?php esc_html_e('Không giới hạn', 'woo-rewardx-lite'); ?></span>
+                        <div class="rewardx-card-media<?php echo empty($item['thumbnail']) ? ' rewardx-card-media--empty' : ''; ?>">
+                            <?php if (!empty($item['thumbnail'])) : ?>
+                                <img src="<?php echo esc_url($item['thumbnail']); ?>" alt="<?php echo esc_attr($item['title']); ?>" />
                             <?php endif; ?>
-                            <?php if ($item['amount'] > 0) : ?>
-                                <span class="rewardx-amount"><?php printf(esc_html__('Trị giá: %s', 'woo-rewardx-lite'), wp_kses_post(wc_price($item['amount']))); ?></span>
+                            <span class="rewardx-badge rewardx-badge-voucher"><?php esc_html_e('Voucher', 'woo-rewardx-lite'); ?></span>
+                        </div>
+                        <div class="rewardx-card-body">
+                            <h4 class="rewardx-card-title"><?php echo esc_html($item['title']); ?></h4>
+                            <p class="rewardx-card-description"><?php echo esc_html($item['excerpt']); ?></p>
+                            <dl class="rewardx-card-meta">
+                                <div class="rewardx-card-meta-item">
+                                    <dt><?php esc_html_e('Chi phí', 'woo-rewardx-lite'); ?></dt>
+                                    <dd><?php echo esc_html(number_format_i18n($item['cost'])); ?></dd>
+                                </div>
+                                <div class="rewardx-card-meta-item">
+                                    <dt><?php esc_html_e('Số lượng', 'woo-rewardx-lite'); ?></dt>
+                                    <dd>
+                                        <?php if ($is_unlimited) : ?>
+                                            <span class="rewardx-chip rewardx-chip--soft"><?php esc_html_e('Không giới hạn', 'woo-rewardx-lite'); ?></span>
+                                        <?php elseif ($is_out_of_stock) : ?>
+                                            <span class="rewardx-chip rewardx-chip--danger"><?php esc_html_e('Đã hết', 'woo-rewardx-lite'); ?></span>
+                                        <?php else : ?>
+                                            <span class="rewardx-chip"><?php echo esc_html(number_format_i18n($stock)); ?></span>
+                                        <?php endif; ?>
+                                    </dd>
+                                </div>
+                                <?php if ($item['amount'] > 0) : ?>
+                                    <div class="rewardx-card-meta-item">
+                                        <dt><?php esc_html_e('Trị giá', 'woo-rewardx-lite'); ?></dt>
+                                        <dd class="rewardx-card-highlight"><?php echo wp_kses_post(function_exists('wc_price') ? wc_price($item['amount']) : number_format_i18n($item['amount'], 0)); ?></dd>
+                                    </div>
+                                <?php endif; ?>
+                            </dl>
+                        </div>
+                        <div class="rewardx-card-footer">
+                            <button class="button rewardx-redeem" data-action="voucher" <?php disabled($is_disabled); ?>>
+                                <?php esc_html_e('Đổi voucher', 'woo-rewardx-lite'); ?>
+                            </button>
+                            <?php if ($is_disabled && !$is_out_of_stock) : ?>
+                                <span class="rewardx-card-note"><?php esc_html_e('Bạn chưa đủ điểm để đổi voucher này.', 'woo-rewardx-lite'); ?></span>
+                            <?php elseif ($is_out_of_stock) : ?>
+                                <span class="rewardx-card-note rewardx-card-note--danger"><?php esc_html_e('Voucher đã được đổi hết.', 'woo-rewardx-lite'); ?></span>
                             <?php endif; ?>
                         </div>
-                        <button class="button rewardx-redeem" data-action="voucher"><?php esc_html_e('Đổi voucher', 'woo-rewardx-lite'); ?></button>
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -80,19 +161,40 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
     <?php endif; ?>
 
     <section class="rewardx-section">
-        <h3><?php esc_html_e('Lịch sử giao dịch gần đây', 'woo-rewardx-lite'); ?></h3>
+        <div class="rewardx-section-header">
+            <div>
+                <h3><?php esc_html_e('Lịch sử giao dịch gần đây', 'woo-rewardx-lite'); ?></h3>
+                <p><?php esc_html_e('Theo dõi những lần cộng trừ điểm một cách rõ ràng, trực quan.', 'woo-rewardx-lite'); ?></p>
+            </div>
+        </div>
         <ul class="rewardx-ledger">
+            <li class="rewardx-ledger-head">
+                <span><?php esc_html_e('Thời gian', 'woo-rewardx-lite'); ?></span>
+                <span><?php esc_html_e('Nội dung', 'woo-rewardx-lite'); ?></span>
+                <span><?php esc_html_e('Điểm', 'woo-rewardx-lite'); ?></span>
+                <span><?php esc_html_e('Số dư', 'woo-rewardx-lite'); ?></span>
+            </li>
             <?php if (!empty($ledger)) : ?>
                 <?php foreach ($ledger as $item) : ?>
-                    <li>
-                        <span class="rewardx-ledger-date"><?php echo esc_html(date_i18n(get_option('date_format'), $item['timestamp'] ?: time())); ?></span>
-                        <span class="rewardx-ledger-reason"><?php echo esc_html($item['reason'] ?: $item['title']); ?></span>
-                        <span class="rewardx-ledger-delta <?php echo $item['delta'] >= 0 ? 'positive' : 'negative'; ?>"><?php echo esc_html($item['delta']); ?></span>
-                        <span class="rewardx-ledger-balance"><?php echo esc_html($item['balance_after']); ?></span>
+                    <li class="rewardx-ledger-row">
+                        <span class="rewardx-ledger-date" data-title="<?php esc_attr_e('Thời gian', 'woo-rewardx-lite'); ?>">
+                            <?php echo esc_html(date_i18n(get_option('date_format'), $item['timestamp'] ?: time())); ?>
+                        </span>
+                        <span class="rewardx-ledger-reason" data-title="<?php esc_attr_e('Nội dung', 'woo-rewardx-lite'); ?>">
+                            <?php echo esc_html($item['reason'] ?: $item['title']); ?>
+                        </span>
+                        <span class="rewardx-ledger-delta <?php echo $item['delta'] >= 0 ? 'positive' : 'negative'; ?>" data-title="<?php esc_attr_e('Điểm', 'woo-rewardx-lite'); ?>">
+                            <?php echo esc_html($item['delta']); ?>
+                        </span>
+                        <span class="rewardx-ledger-balance" data-title="<?php esc_attr_e('Số dư', 'woo-rewardx-lite'); ?>">
+                            <?php echo esc_html($item['balance_after']); ?>
+                        </span>
                     </li>
                 <?php endforeach; ?>
             <?php else : ?>
-                <li><?php esc_html_e('Chưa có giao dịch nào.', 'woo-rewardx-lite'); ?></li>
+                <li class="rewardx-ledger-empty">
+                    <span><?php esc_html_e('Chưa có giao dịch nào.', 'woo-rewardx-lite'); ?></span>
+                </li>
             <?php endif; ?>
         </ul>
     </section>
