@@ -1,0 +1,21 @@
+.rewardx-meta-table input[type="number"],
+.rewardx-meta-table input[type="text"] {
+    width: 100%;
+    max-width: 320px;
+}
+
+.rewardx-adjust-points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.rewardx-adjust-points input[type="number"],
+.rewardx-adjust-points input[type="text"] {
+    max-width: 200px;
+}
+
+.rewardx-adjust-points .rewardx-adjust-button {
+    align-self: center;
+}
