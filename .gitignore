@@ -1,0 +1,34 @@
+# Hệ thống & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Composer
+/vendor/
+/composer.lock
+
+# Node / build tool (nếu bạn có)
+node_modules/
+npm-debug.log*
+yarn.lock
+package-lock.json
+/dist/
+/build/
+
+# Logs & cache
+*.log
+*.tmp
+*.cache
+
+# Zed editor
+.zed/
+
+# WordPress core (trong trường hợp bạn clone về test trong wp-content)
+wordpress/
+wp-admin/
+wp-includes/
+
+# Nếu plugin sinh file upload/tạm
+uploads/
