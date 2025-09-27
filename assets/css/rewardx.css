@@ -19,6 +19,33 @@
     gap: 1.5rem;
 }
 
+.rewardx-customer-insights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.rewardx-customer-insights > div {
+    min-width: 180px;
+}
+
+.rewardx-insight-label {
+    display: block;
+    font-size: 0.85rem;
+    color: #4a5568;
+    margin-bottom: 0.25rem;
+}
+
+.rewardx-insight-value {
+    font-size: 1.15rem;
+    color: #1a202c;
+}
+
 .rewardx-card {
     position: relative;
     background: #fff;
@@ -181,5 +208,10 @@
     .rewardx-ledger-delta,
     .rewardx-ledger-balance {
         text-align: left;
+    }
+
+    .rewardx-customer-insights {
+        flex-direction: column;
+        gap: 1rem;
     }
 }

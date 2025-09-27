@@ -121,6 +121,34 @@ class Admin
         update_post_meta($post_id, '_expiry_days', $expiry > 0 ? $expiry : 30);
         update_post_meta($post_id, '_stock', $stock);
         update_post_meta($post_id, '_sku', $sku);
+
+        $taxonomy = Reward_CPT::TAXONOMY;
+
+        if (isset($_POST['tax_input'][$taxonomy]) && is_array($_POST['tax_input'][$taxonomy])) {
+            $raw_terms    = wp_unslash($_POST['tax_input'][$taxonomy]);
+            $terms_to_set = [];
+
+            foreach ($raw_terms as $term_value) {
+                $term_value = sanitize_text_field($term_value);
+
+                if (is_numeric($term_value)) {
+                    $term = get_term((int) $term_value, $taxonomy);
+                    if ($term && !is_wp_error($term)) {
+                        $terms_to_set[] = $term->slug;
+                    }
+                } elseif ('' !== $term_value) {
+                    $terms_to_set[] = $term_value;
+                }
+            }
+
+            if (!empty($terms_to_set)) {
+                wp_set_post_terms($post_id, $terms_to_set, $taxonomy, false);
+            }
+        }
+
+        if (empty(wp_get_post_terms($post_id, $taxonomy, ['fields' => 'ids']))) {
+            wp_set_post_terms($post_id, ['physical'], $taxonomy, false);
+        }
     }
 
     public function manage_columns(array $columns): array

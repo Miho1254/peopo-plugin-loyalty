@@ -88,11 +88,13 @@ class Frontend
             return;
         }
 
-        $user_id  = get_current_user_id();
-        $points   = $this->points_manager->get_points($user_id);
-        $ledger   = $this->points_manager->get_recent_transactions($user_id, 10);
-        $settings = Plugin::instance()->get_settings()->get_settings();
-        $rewards  = $this->get_rewards();
+        $user_id     = get_current_user_id();
+        $points      = $this->points_manager->get_points($user_id);
+        $ledger      = $this->points_manager->get_recent_transactions($user_id, 10);
+        $settings    = Plugin::instance()->get_settings()->get_settings();
+        $rewards     = $this->get_rewards();
+        $total_spent = function_exists('wc_get_customer_total_spent') ? (float) wc_get_customer_total_spent($user_id) : 0.0;
+        $order_count = function_exists('wc_get_customer_order_count') ? (int) wc_get_customer_order_count($user_id) : 0;
 
         include REWARDX_PATH . 'includes/views/account-rewardx.php';
     }
