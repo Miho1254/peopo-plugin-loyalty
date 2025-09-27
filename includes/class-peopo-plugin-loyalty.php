@@ -80,6 +80,17 @@ final class Plugin
         add_action('wp_enqueue_scripts', [$this, 'enqueue_public_assets']);
         add_shortcode($this->slug, [$this, 'render_shortcode']);
 
+        // ===== Hook WooCommerce =====
+        add_action('init', [$this, 'register_account_endpoint']);
+        add_filter('woocommerce_account_menu_items', [$this, 'add_account_menu_item']);
+        add_action('woocommerce_account_peopo-loyalty_endpoint', [$this, 'render_account_endpoint']);
+        add_action('woocommerce_order_status_completed', [$this, 'sync_order_points']);
+
+        add_action('show_user_profile', [$this, 'render_user_profile_fields']);
+        add_action('edit_user_profile', [$this, 'render_user_profile_fields']);
+        add_action('personal_options_update', [$this, 'save_user_profile_fields']);
+        add_action('edit_user_profile_update', [$this, 'save_user_profile_fields']);
+
         // ===== Hook dữ liệu =====
         add_action('init', [$this, 'register_custom_post_type']);
     }
@@ -96,7 +107,9 @@ final class Plugin
         }
 
         // Thường sẽ cần flush rewrite khi đăng ký CPT.
-        self::instance()->register_custom_post_type();
+        $instance = self::instance();
+        $instance->register_custom_post_type();
+        $instance->register_account_endpoint();
         flush_rewrite_rules();
     }
 
@@ -231,6 +244,217 @@ final class Plugin
         ];
 
         register_post_type('peopo_loyalty_transaction', $args);
+    }
+
+    /**
+     * Đăng ký endpoint loyalty tại trang tài khoản WooCommerce.
+     */
+    public function register_account_endpoint(): void
+    {
+        add_rewrite_endpoint('peopo-loyalty', EP_ROOT | EP_PAGES);
+    }
+
+    /**
+     * Thêm mục menu mới trong trang tài khoản.
+     */
+    public function add_account_menu_item(array $items): array
+    {
+        if (!function_exists('wc_get_page_id') || wc_get_page_id('myaccount') === -1) {
+            return $items;
+        }
+
+        $logout = $items['customer-logout'] ?? null;
+
+        if (null !== $logout) {
+            unset($items['customer-logout']);
+        }
+
+        $items['peopo-loyalty'] = __('Thành viên thân thiết', 'peopo-loyalty');
+
+        if (null !== $logout) {
+            $items['customer-logout'] = $logout;
+        }
+
+        return $items;
+    }
+
+    /**
+     * Render nội dung của tab loyalty trong tài khoản người dùng.
+     */
+    public function render_account_endpoint(): void
+    {
+        if (!is_user_logged_in()) {
+            echo '<p>' . esc_html__('Vui lòng đăng nhập để xem thông tin thành viên.', 'peopo-loyalty') . '</p>';
+            return;
+        }
+
+        $user_id = get_current_user_id();
+        $user = get_userdata($user_id);
+
+        if (!$user instanceof \WP_User) {
+            echo '<p>' . esc_html__('Không tìm thấy thông tin tài khoản.', 'peopo-loyalty') . '</p>';
+            return;
+        }
+
+        $total_spent = function_exists('wc_get_customer_total_spent')
+            ? (float) wc_get_customer_total_spent($user_id)
+            : (float) get_user_meta($user_id, '_money_spent', true);
+
+        $points = (int) get_user_meta($user_id, 'peopo_loyalty_points', true);
+        $points_value = $points * 1000;
+
+        $tier = $this->determine_tier($total_spent);
+
+        ?>
+        <div class="peopo-loyalty-account">
+            <h2><?php esc_html_e('Chương trình khách hàng thân thiết', 'peopo-loyalty'); ?></h2>
+            <ul class="peopo-loyalty-account__list">
+                <li><strong><?php esc_html_e('Tên khách hàng:', 'peopo-loyalty'); ?></strong> <?php echo esc_html($user->display_name); ?></li>
+                <li>
+                    <strong><?php esc_html_e('Tổng chi tiêu:', 'peopo-loyalty'); ?></strong>
+                    <?php echo wp_kses_post($this->format_price($total_spent)); ?>
+                </li>
+                <li>
+                    <strong><?php esc_html_e('Điểm đã tích luỹ:', 'peopo-loyalty'); ?></strong>
+                    <?php echo esc_html(number_format_i18n($points)); ?>
+                    <span class="peopo-loyalty-account__note">
+                        <?php
+                        printf(
+                            esc_html__('(Quy đổi tương đương %s)', 'peopo-loyalty'),
+                            wp_kses_post($this->format_price($points_value))
+                        );
+                        ?>
+                    </span>
+                </li>
+                <li>
+                    <strong><?php esc_html_e('Hạng hiện tại:', 'peopo-loyalty'); ?></strong>
+                    <?php echo esc_html($tier['label']); ?>
+                </li>
+            </ul>
+            <p class="peopo-loyalty-account__desc"><?php echo esc_html($tier['description']); ?></p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Cộng điểm sau khi đơn hàng được hoàn tất.
+     */
+    public function sync_order_points($order_id): void
+    {
+        if (!function_exists('wc_get_order')) {
+            return;
+        }
+
+        $order = wc_get_order($order_id);
+
+        if (!$order instanceof \WC_Order) {
+            return;
+        }
+
+        $user_id = $order->get_user_id();
+
+        if (!$user_id) {
+            return;
+        }
+
+        $total = (float) $order->get_total();
+        $points = (int) floor($total / 1000);
+
+        if ($points <= 0) {
+            return;
+        }
+
+        $current_points = (int) get_user_meta($user_id, 'peopo_loyalty_points', true);
+        update_user_meta($user_id, 'peopo_loyalty_points', $current_points + $points);
+    }
+
+    /**
+     * Trường tuỳ chỉnh trong hồ sơ người dùng để quản trị viên chỉnh điểm.
+     */
+    public function render_user_profile_fields($user): void
+    {
+        if (!current_user_can('manage_woocommerce') && !current_user_can('manage_options')) {
+            return;
+        }
+
+        $points = (int) get_user_meta($user->ID, 'peopo_loyalty_points', true);
+        ?>
+        <h2><?php esc_html_e('Điểm thành viên Peopo Loyalty', 'peopo-loyalty'); ?></h2>
+        <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row"><label for="peopo_loyalty_points"><?php esc_html_e('Điểm tích luỹ', 'peopo-loyalty'); ?></label></th>
+                <td>
+                    <input type="number" class="regular-text" name="peopo_loyalty_points" id="peopo_loyalty_points" min="0" value="<?php echo esc_attr($points); ?>" />
+                    <p class="description"><?php esc_html_e('Điền số điểm mong muốn để cập nhật cho khách hàng.', 'peopo-loyalty'); ?></p>
+                </td>
+            </tr>
+        </table>
+        <?php
+    }
+
+    /**
+     * Lưu lại điểm khi quản trị viên cập nhật hồ sơ người dùng.
+     */
+    public function save_user_profile_fields($user_id): void
+    {
+        if (!current_user_can('manage_woocommerce') && !current_user_can('manage_options')) {
+            return;
+        }
+
+        if (!isset($_POST['peopo_loyalty_points'])) {
+            return;
+        }
+
+        $points = max(0, (int) sanitize_text_field(wp_unslash($_POST['peopo_loyalty_points'])));
+        update_user_meta($user_id, 'peopo_loyalty_points', $points);
+    }
+
+    /**
+     * Xác định hạng thành viên dựa trên tổng chi tiêu.
+     */
+    private function determine_tier(float $total_spent): array
+    {
+        $tiers = [
+            [
+                'min' => 50000000,
+                'label' => __('Kim cương', 'peopo-loyalty'),
+                'description' => __('Bạn ở hạng cao nhất với những ưu đãi độc quyền.', 'peopo-loyalty'),
+            ],
+            [
+                'min' => 20000000,
+                'label' => __('Vàng', 'peopo-loyalty'),
+                'description' => __('Bạn đã ở hạng Vàng. Hãy tiếp tục mua sắm để chạm tới Kim cương.', 'peopo-loyalty'),
+            ],
+            [
+                'min' => 5000000,
+                'label' => __('Bạc', 'peopo-loyalty'),
+                'description' => __('Chỉ còn một bước nữa để đạt hạng Vàng!', 'peopo-loyalty'),
+            ],
+        ];
+
+        foreach ($tiers as $tier) {
+            if ($total_spent >= $tier['min']) {
+                return $tier;
+            }
+        }
+
+        return [
+            'min' => 0,
+            'label' => __('Đồng', 'peopo-loyalty'),
+            'description' => __('Bắt đầu tích điểm ngay hôm nay để nâng hạng nhanh chóng.', 'peopo-loyalty'),
+        ];
+    }
+
+    /**
+     * Định dạng tiền tệ theo cấu hình WooCommerce.
+     */
+    private function format_price(float $amount): string
+    {
+        if (function_exists('wc_price')) {
+            return wc_price($amount);
+        }
+
+        return esc_html(number_format_i18n($amount)) . ' VND';
     }
 
     /**
