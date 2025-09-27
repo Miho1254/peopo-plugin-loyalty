@@ -76,8 +76,8 @@ class Reward_CPT
             return;
         }
 
-        $selected = wp_get_post_terms($post->ID, self::TAXONOMY, ['fields' => 'ids']);
-        $selected_id = $selected[0] ?? 0;
+        $selected = wp_get_post_terms($post->ID, self::TAXONOMY, ['fields' => 'slugs']);
+        $selected_slug = $selected[0] ?? 'physical';
 
         echo '<div class="rewardx-taxonomy-field">';
         echo '<p>' . esc_html__('Chọn loại phần thưởng', 'woo-rewardx-lite') . '</p>';
@@ -85,8 +85,8 @@ class Reward_CPT
         foreach ($terms as $term) {
             printf(
                 '<option value="%1$s" %2$s>%3$s</option>',
-                esc_attr($term->term_id),
-                selected($selected_id, $term->term_id, false),
+                esc_attr($term->slug),
+                selected($selected_slug, $term->slug, false),
                 esc_html($term->name)
             );
         }

@@ -42,6 +42,16 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
     <?php if (!empty($voucher_rewards)) : ?>
         <section class="rewardx-section">
             <h3><?php esc_html_e('Voucher', 'woo-rewardx-lite'); ?></h3>
+            <div class="rewardx-customer-insights">
+                <div>
+                    <span class="rewardx-insight-label"><?php esc_html_e('Tổng giá trị đơn hàng đã mua', 'woo-rewardx-lite'); ?></span>
+                    <strong class="rewardx-insight-value"><?php echo wp_kses_post(function_exists('wc_price') ? wc_price($total_spent) : number_format_i18n($total_spent, 2)); ?></strong>
+                </div>
+                <div>
+                    <span class="rewardx-insight-label"><?php esc_html_e('Số đơn hàng đã hoàn tất', 'woo-rewardx-lite'); ?></span>
+                    <strong class="rewardx-insight-value"><?php echo esc_html(number_format_i18n($order_count)); ?></strong>
+                </div>
+            </div>
             <div class="rewardx-grid">
                 <?php foreach ($voucher_rewards as $item) : ?>
                     <article class="rewardx-card" data-reward-id="<?php echo esc_attr($item['id']); ?>" data-type="voucher" data-cost="<?php echo esc_attr($item['cost']); ?>">
