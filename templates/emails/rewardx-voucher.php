@@ -12,15 +12,15 @@ if (!defined('ABSPATH')) {
 <table style="width:100%;border-collapse:collapse;">
     <tr>
         <th style="text-align:left;border:1px solid #ddd;padding:8px;"><?php esc_html_e('Mã voucher', 'woo-rewardx-lite'); ?></th>
-        <td style="border:1px solid #ddd;padding:8px;font-weight:bold;font-size:18px;"><?php echo esc_html($email->data['coupon_code']); ?></td>
+        <td style="border:1px solid #ddd;padding:8px;font-weight:bold;font-size:18px;"><?php echo esc_html($coupon_code); ?></td>
     </tr>
     <tr>
         <th style="text-align:left;border:1px solid #ddd;padding:8px;"><?php esc_html_e('Giá trị', 'woo-rewardx-lite'); ?></th>
-        <td style="border:1px solid #ddd;padding:8px;"><?php echo wp_kses_post(wc_price($email->data['coupon_amount'])); ?></td>
+        <td style="border:1px solid #ddd;padding:8px;"><?php echo wp_kses_post(wc_price($coupon_amount)); ?></td>
     </tr>
     <tr>
         <th style="text-align:left;border:1px solid #ddd;padding:8px;"><?php esc_html_e('Hết hạn vào', 'woo-rewardx-lite'); ?></th>
-        <td style="border:1px solid #ddd;padding:8px;"><?php echo esc_html($email->data['coupon_expiry']); ?></td>
+        <td style="border:1px solid #ddd;padding:8px;"><?php echo esc_html($coupon_expiry); ?></td>
     </tr>
 </table>
 
