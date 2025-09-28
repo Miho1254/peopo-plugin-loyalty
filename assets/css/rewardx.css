@@ -9,15 +9,15 @@
     --rx-accent-soft: rgba(37, 99, 235, 0.08);
     --rx-positive: #059669;
     --rx-danger: #dc2626;
-    --rx-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
-    max-width: 1120px;
+    --rx-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    max-width: 960px;
     margin: 0 auto;
-    padding: 3rem 1.5rem 4rem;
+    padding: 2.25rem 1.5rem 3rem;
     color: var(--rx-ink);
-    background: linear-gradient(180deg, rgba(241, 245, 249, 0.9), rgba(255, 255, 255, 0.9));
-    border-radius: 32px;
-    box-shadow: 0 45px 80px rgba(15, 23, 42, 0.12);
-    backdrop-filter: blur(16px);
+    background: linear-gradient(180deg, rgba(241, 245, 249, 0.85), rgba(255, 255, 255, 0.9));
+    border-radius: 24px;
+    box-shadow: 0 24px 55px rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(12px);
     position: relative;
     overflow: hidden;
     isolation: isolate;
@@ -27,19 +27,19 @@
 .rewardx-account::after {
     content: '';
     position: absolute;
-    inset: -40% auto auto -30%;
-    width: 420px;
-    height: 420px;
-    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.18), transparent 70%);
-    opacity: 0.7;
+    inset: -45% auto auto -35%;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.14), transparent 70%);
+    opacity: 0.6;
     z-index: -1;
     transform: translate3d(0, 0, 0);
     animation: rewardx-float 12s ease-in-out infinite;
 }
 
 .rewardx-account::after {
-    inset: auto -35% -40% auto;
-    background: radial-gradient(circle at center, rgba(16, 185, 129, 0.22), transparent 70%);
+    inset: auto -30% -45% auto;
+    background: radial-gradient(circle at center, rgba(16, 185, 129, 0.18), transparent 70%);
     animation-duration: 16s;
     animation-delay: 1.2s;
 }
@@ -48,10 +48,48 @@
     box-sizing: border-box;
 }
 
-.rewardx-overview {
+.rewardx-overview { 
     display: grid;
     gap: 2.5rem;
     margin-bottom: 3rem;
+}
+
+.rewardx-summary {
+    margin: 1.5rem 0 2.25rem;
+}
+
+.rewardx-summary-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.rewardx-summary-list li {
+    flex: 1 1 220px;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.rewardx-summary-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--rx-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.rewardx-summary-value {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--rx-ink);
 }
 
 .rewardx-overview-header {
@@ -413,12 +451,12 @@
 
 .rewardx-card {
     display: grid;
-    gap: 1.25rem;
-    padding: 1.6rem;
-    border-radius: 20px;
+    gap: 0.9rem;
+    padding: 1.15rem 1.25rem;
+    border-radius: 16px;
     background: #ffffff;
     border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.07);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
     position: relative;
     overflow: hidden;
@@ -440,9 +478,9 @@
 }
 
 .rewardx-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 35px 70px rgba(15, 23, 42, 0.14);
-    border-color: rgba(37, 99, 235, 0.35);
+    transform: translateY(-4px);
+    box-shadow: 0 22px 48px rgba(15, 23, 42, 0.12);
+    border-color: rgba(37, 99, 235, 0.3);
 }
 
 .rewardx-card:hover::before {
@@ -486,15 +524,15 @@
 
 .rewardx-card-title {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
 .rewardx-card-description {
     margin: 0;
     color: var(--rx-muted);
-    line-height: 1.5;
-    font-size: 0.95rem;
+    line-height: 1.45;
+    font-size: 0.9rem;
 }
 
 .rewardx-badge {

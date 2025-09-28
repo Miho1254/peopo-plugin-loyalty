@@ -12,27 +12,6 @@ $physical_tab_id    = $has_physical && $has_voucher ? 'rewardx-tab-physical' : '
 $voucher_tab_id     = $has_physical && $has_voucher ? 'rewardx-tab-voucher' : '';
 $physical_role      = $has_physical && $has_voucher ? 'tabpanel' : 'region';
 $voucher_role       = $has_physical && $has_voucher ? 'tabpanel' : 'region';
-$all_rewards        = array_merge($physical_rewards, $voucher_rewards);
-$available_rewards  = 0;
-$locked_rewards     = 0;
-$out_of_stock       = 0;
-
-foreach ($all_rewards as $reward_item) {
-    $stock           = (int) ($reward_item['stock'] ?? 0);
-    $is_unlimited    = $stock === -1;
-    $is_out_of_stock = !$is_unlimited && $stock <= 0;
-
-    if ($is_out_of_stock) {
-        $out_of_stock++;
-        continue;
-    }
-
-    if ($points >= (int) ($reward_item['cost'] ?? 0)) {
-        $available_rewards++;
-    } else {
-        $locked_rewards++;
-    }
-}
 ?>
 <div class="rewardx-account" data-current-points="<?php echo esc_attr($points); ?>">
     <header class="rewardx-intro">
@@ -52,18 +31,6 @@ foreach ($all_rewards as $reward_item) {
                 <strong class="rewardx-summary-value">
                     <?php echo wp_kses_post(function_exists('wc_price') ? wc_price($total_spent) : number_format_i18n($total_spent, 0)); ?>
                 </strong>
-            </li>
-            <li>
-                <span class="rewardx-summary-label"><?php esc_html_e('Phần thưởng khả dụng', 'woo-rewardx-lite'); ?></span>
-                <strong class="rewardx-summary-value rewardx-stat-available"><?php echo esc_html(number_format_i18n($available_rewards)); ?></strong>
-            </li>
-            <li>
-                <span class="rewardx-summary-label"><?php esc_html_e('Cần thêm điểm', 'woo-rewardx-lite'); ?></span>
-                <strong class="rewardx-summary-value rewardx-stat-locked"><?php echo esc_html(number_format_i18n($locked_rewards)); ?></strong>
-            </li>
-            <li>
-                <span class="rewardx-summary-label"><?php esc_html_e('Tạm hết hàng', 'woo-rewardx-lite'); ?></span>
-                <strong class="rewardx-summary-value rewardx-stat-oos"><?php echo esc_html(number_format_i18n($out_of_stock)); ?></strong>
             </li>
         </ul>
     </section>
@@ -92,11 +59,6 @@ foreach ($all_rewards as $reward_item) {
                         </span>
                     </p>
                 <?php endif; ?>
-
-                <label class="rewardx-search" for="rewardx-search">
-                    <span class="screen-reader-text"><?php esc_html_e('Tìm kiếm phần thưởng', 'woo-rewardx-lite'); ?></span>
-                    <input type="search" id="rewardx-search" class="rewardx-search-input" placeholder="<?php esc_attr_e('Tìm kiếm theo tên hoặc mô tả...', 'woo-rewardx-lite'); ?>" autocomplete="off" />
-                </label>
 
                 <label class="rewardx-filter">
                     <input type="checkbox" class="rewardx-filter-toggle" />
