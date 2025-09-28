@@ -59,44 +59,13 @@ foreach ($all_rewards as $reward_item) {
                 <strong class="rewardx-overview-value">
                     <?php echo wp_kses_post(function_exists('wc_price') ? wc_price($total_spent) : number_format_i18n($total_spent, 0)); ?>
                 </strong>
-                <p class="rewardx-overview-subtext">
-                    <?php
-                    printf(
-                        /* translators: %s: number of orders */
-                        esc_html__('Đã hoàn tất %s đơn hàng.', 'woo-rewardx-lite'),
-                        esc_html(number_format_i18n($order_count))
-                    );
-                    ?>
-                </p>
-            </article>
-
-            <article class="rewardx-overview-card">
-                <header>
-                    <span class="rewardx-overview-label"><?php esc_html_e('Phần thưởng có thể đổi ngay', 'woo-rewardx-lite'); ?></span>
-                </header>
-                <strong class="rewardx-overview-value"><?php echo esc_html(number_format_i18n($available_rewards)); ?></strong>
-                <p class="rewardx-overview-subtext">
-                    <?php
-                    if ($available_rewards > 0) {
-                        esc_html_e('Hãy đổi thưởng để tận hưởng ưu đãi dành riêng cho bạn.', 'woo-rewardx-lite');
-                    } elseif ($locked_rewards > 0) {
-                        esc_html_e('Tiếp tục mua sắm để mở khóa thêm nhiều phần thưởng.', 'woo-rewardx-lite');
-                    } else {
-                        esc_html_e('Các phần thưởng mới sẽ được cập nhật thường xuyên.', 'woo-rewardx-lite');
-                    }
-                    ?>
-                </p>
             </article>
         </div>
     </section>
 
     <section class="rewardx-section rewardx-section--redeem">
-        <div class="rewardx-section-header">
-            <div>
-                <h3><?php esc_html_e('Đổi thưởng', 'woo-rewardx-lite'); ?></h3>
-                <p><?php esc_html_e('Chọn phần thưởng phù hợp với số điểm hiện có và xác nhận chỉ trong một bước.', 'woo-rewardx-lite'); ?></p>
-            </div>
-            <?php if ($has_physical || $has_voucher) : ?>
+        <?php if ($has_physical || $has_voucher) : ?>
+            <div class="rewardx-section-header">
                 <div class="rewardx-toolbar">
                     <?php if ($has_physical && $has_voucher) : ?>
                         <div class="rewardx-tabs" role="tablist" aria-label="<?php esc_attr_e('Danh mục phần thưởng', 'woo-rewardx-lite'); ?>">
@@ -114,17 +83,9 @@ foreach ($all_rewards as $reward_item) {
                             </span>
                         </div>
                     <?php endif; ?>
-
-                    <label for="rewardx-filter-available" class="rewardx-filter">
-                        <input type="checkbox" id="rewardx-filter-available" class="rewardx-filter-toggle" />
-                        <span class="rewardx-filter-switch" aria-hidden="true">
-                            <span class="rewardx-filter-knob"></span>
-                        </span>
-                        <span class="rewardx-filter-text"><?php esc_html_e('Chỉ hiển thị phần thưởng đủ điểm', 'woo-rewardx-lite'); ?></span>
-                    </label>
                 </div>
-            <?php endif; ?>
-        </div>
+            </div>
+        <?php endif; ?>
 
         <?php if (!$has_physical && !$has_voucher) : ?>
             <div class="rewardx-empty">
