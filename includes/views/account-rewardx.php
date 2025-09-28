@@ -12,13 +12,56 @@ $physical_tab_id    = $has_physical && $has_voucher ? 'rewardx-tab-physical' : '
 $voucher_tab_id     = $has_physical && $has_voucher ? 'rewardx-tab-voucher' : '';
 $physical_role      = $has_physical && $has_voucher ? 'tabpanel' : 'region';
 $voucher_role       = $has_physical && $has_voucher ? 'tabpanel' : 'region';
+$all_rewards        = array_merge($physical_rewards, $voucher_rewards);
+$total_rewards      = count($all_rewards);
+$available_rewards  = 0;
+$locked_rewards     = 0;
+$out_of_stock       = 0;
+
+foreach ($all_rewards as $reward_item) {
+    $stock           = (int) ($reward_item['stock'] ?? 0);
+    $is_unlimited    = $stock === -1;
+    $is_out_of_stock = !$is_unlimited && $stock <= 0;
+    if ($is_out_of_stock) {
+        $out_of_stock++;
+        continue;
+    }
+
+    if ($points >= (int) ($reward_item['cost'] ?? 0)) {
+        $available_rewards++;
+    } else {
+        $locked_rewards++;
+    }
+}
 ?>
 <div class="rewardx-account" data-current-points="<?php echo esc_attr($points); ?>">
-    <div class="rewardx-balance">
-        <h2><?php esc_html_e('Điểm của bạn', 'woo-rewardx-lite'); ?></h2>
-        <p class="rewardx-points"><?php echo esc_html(number_format_i18n($points)); ?></p>
-        <p class="rewardx-balance-hint"><?php esc_html_e('Đổi thưởng dễ dàng với những gợi ý được sắp xếp rõ ràng bên dưới.', 'woo-rewardx-lite'); ?></p>
-    </div>
+    <header class="rewardx-balance rewardx-hero">
+        <div class="rewardx-hero-summary">
+            <p class="rewardx-hero-label"><?php esc_html_e('Điểm của bạn', 'woo-rewardx-lite'); ?></p>
+            <p class="rewardx-points"><?php echo esc_html(number_format_i18n($points)); ?></p>
+            <p class="rewardx-hero-hint"><?php esc_html_e('Đổi thưởng nhanh chóng với bố cục rõ ràng, dễ nhìn và tập trung vào điều quan trọng nhất.', 'woo-rewardx-lite'); ?></p>
+        </div>
+        <?php if ($total_rewards > 0) : ?>
+            <ul class="rewardx-hero-stats" role="list">
+                <li>
+                    <span class="rewardx-stat-label"><?php esc_html_e('Tổng phần thưởng', 'woo-rewardx-lite'); ?></span>
+                    <strong class="rewardx-stat-value"><?php echo esc_html(number_format_i18n($total_rewards)); ?></strong>
+                </li>
+                <li>
+                    <span class="rewardx-stat-label"><?php esc_html_e('Khả dụng ngay', 'woo-rewardx-lite'); ?></span>
+                    <strong class="rewardx-stat-value rewardx-stat-value--success"><?php echo esc_html(number_format_i18n($available_rewards)); ?></strong>
+                </li>
+                <li>
+                    <span class="rewardx-stat-label"><?php esc_html_e('Chờ đủ điểm', 'woo-rewardx-lite'); ?></span>
+                    <strong class="rewardx-stat-value rewardx-stat-value--muted"><?php echo esc_html(number_format_i18n($locked_rewards)); ?></strong>
+                </li>
+                <li>
+                    <span class="rewardx-stat-label"><?php esc_html_e('Tạm hết', 'woo-rewardx-lite'); ?></span>
+                    <strong class="rewardx-stat-value rewardx-stat-value--alert"><?php echo esc_html(number_format_i18n($out_of_stock)); ?></strong>
+                </li>
+            </ul>
+        <?php endif; ?>
+    </header>
 
     <?php if (!$has_physical && !$has_voucher) : ?>
         <div class="rewardx-empty">
@@ -48,7 +91,10 @@ $voucher_role       = $has_physical && $has_voucher ? 'tabpanel' : 'region';
 
             <label for="rewardx-filter-available" class="rewardx-filter">
                 <input type="checkbox" id="rewardx-filter-available" class="rewardx-filter-toggle" />
-                <span><?php esc_html_e('Chỉ hiển thị phần thưởng đủ điểm', 'woo-rewardx-lite'); ?></span>
+                <span class="rewardx-filter-switch" aria-hidden="true">
+                    <span class="rewardx-filter-knob"></span>
+                </span>
+                <span class="rewardx-filter-text"><?php esc_html_e('Chỉ hiển thị phần thưởng đủ điểm', 'woo-rewardx-lite'); ?></span>
             </label>
         </div>
     <?php endif; ?>
@@ -106,9 +152,16 @@ $voucher_role       = $has_physical && $has_voucher ? 'tabpanel' : 'region';
                                 <?php esc_html_e('Đổi quà', 'woo-rewardx-lite'); ?>
                             </button>
                             <?php if ($is_disabled && !$is_out_of_stock) : ?>
+                                <div class="rewardx-card-progress" aria-live="polite">
+                                    <span class="rewardx-card-progress-label"><?php esc_html_e('Còn thiếu', 'woo-rewardx-lite'); ?></span>
+                                    <strong class="rewardx-card-progress-value"><?php echo esc_html(number_format_i18n(max(0, (int) $item['cost'] - $points))); ?></strong>
+                                    <span class="rewardx-card-progress-suffix"><?php esc_html_e('điểm', 'woo-rewardx-lite'); ?></span>
+                                </div>
                                 <span class="rewardx-card-note"><?php esc_html_e('Bạn cần thêm điểm để đổi quà này.', 'woo-rewardx-lite'); ?></span>
                             <?php elseif ($is_out_of_stock) : ?>
                                 <span class="rewardx-card-note rewardx-card-note--danger"><?php esc_html_e('Phần thưởng tạm thời đã hết.', 'woo-rewardx-lite'); ?></span>
+                            <?php else : ?>
+                                <span class="rewardx-card-note rewardx-card-note--success"><?php esc_html_e('Bạn đã đủ điểm để đổi quà ngay.', 'woo-rewardx-lite'); ?></span>
                             <?php endif; ?>
                         </div>
                     </article>
@@ -189,9 +242,16 @@ $voucher_role       = $has_physical && $has_voucher ? 'tabpanel' : 'region';
                                 <?php esc_html_e('Đổi voucher', 'woo-rewardx-lite'); ?>
                             </button>
                             <?php if ($is_disabled && !$is_out_of_stock) : ?>
+                                <div class="rewardx-card-progress" aria-live="polite">
+                                    <span class="rewardx-card-progress-label"><?php esc_html_e('Còn thiếu', 'woo-rewardx-lite'); ?></span>
+                                    <strong class="rewardx-card-progress-value"><?php echo esc_html(number_format_i18n(max(0, (int) $item['cost'] - $points))); ?></strong>
+                                    <span class="rewardx-card-progress-suffix"><?php esc_html_e('điểm', 'woo-rewardx-lite'); ?></span>
+                                </div>
                                 <span class="rewardx-card-note"><?php esc_html_e('Bạn chưa đủ điểm để đổi voucher này.', 'woo-rewardx-lite'); ?></span>
                             <?php elseif ($is_out_of_stock) : ?>
                                 <span class="rewardx-card-note rewardx-card-note--danger"><?php esc_html_e('Voucher đã được đổi hết.', 'woo-rewardx-lite'); ?></span>
+                            <?php else : ?>
+                                <span class="rewardx-card-note rewardx-card-note--success"><?php esc_html_e('Voucher sẵn sàng để bạn đổi.', 'woo-rewardx-lite'); ?></span>
                             <?php endif; ?>
                         </div>
                     </article>

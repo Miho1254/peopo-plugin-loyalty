@@ -1,26 +1,98 @@
 .rewardx-account {
-    max-width: 1100px;
-    margin: 2rem auto;
-    padding: 0 1.5rem 3rem;
+    max-width: 1200px;
+    margin: 3rem auto;
+    padding: 0 1.5rem 4rem;
+    color: #0f172a;
 }
 
-.rewardx-balance {
-    text-align: center;
-    margin-bottom: 2.5rem;
+.rewardx-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 2.75rem;
+    border-radius: 28px;
+    background: radial-gradient(110% 140% at 0% 0%, rgba(37, 99, 235, 0.12) 0%, rgba(14, 165, 233, 0.05) 45%, rgba(255, 255, 255, 1) 100%);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+}
+
+.rewardx-hero-summary {
+    max-width: 420px;
+}
+
+.rewardx-hero-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #1d4ed8;
+    font-weight: 600;
+    margin: 0 0 0.85rem;
 }
 
 .rewardx-points {
-    font-size: 3rem;
+    font-size: 3.5rem;
     font-weight: 700;
-    color: #2563eb;
-    margin-bottom: 0.25rem;
+    color: #1e3a8a;
+    margin: 0;
+    line-height: 1;
 }
 
-.rewardx-balance-hint {
+.rewardx-hero-hint {
+    margin: 1rem 0 0;
     color: #475569;
-    font-size: 0.95rem;
-    margin: 0 auto;
-    max-width: 540px;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.rewardx-hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    flex: 1;
+    min-width: 260px;
+}
+
+.rewardx-hero-stats li {
+    position: relative;
+    padding: 1.1rem 1.25rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+}
+
+.rewardx-stat-label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin-bottom: 0.4rem;
+}
+
+.rewardx-stat-value {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.rewardx-stat-value--success {
+    color: #047857;
+}
+
+.rewardx-stat-value--muted {
+    color: #64748b;
+}
+
+.rewardx-stat-value--alert {
+    color: #b91c1c;
 }
 
 .rewardx-empty {
@@ -51,19 +123,24 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.75rem;
+    gap: 1.25rem;
+    margin-bottom: 2.25rem;
     flex-wrap: wrap;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 18px;
+    padding: 1.1rem 1.5rem;
+    box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
 }
 
 .rewardx-tabs {
     display: inline-flex;
     align-items: center;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 999px;
-    padding: 0.25rem;
-    gap: 0.25rem;
+    background: rgba(241, 245, 249, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 14px;
+    padding: 0.35rem;
+    gap: 0.35rem;
 }
 
 .rewardx-tabs--single {
@@ -80,11 +157,11 @@
     background: transparent;
     color: #475569;
     font-weight: 600;
-    font-size: 0.9rem;
-    padding: 0.45rem 1.2rem;
-    border-radius: 999px;
+    font-size: 0.95rem;
+    padding: 0.55rem 1.4rem;
+    border-radius: 12px;
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .rewardx-tabs--single .rewardx-tab {
@@ -94,9 +171,10 @@
 }
 
 .rewardx-tab.is-active {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(37, 99, 235, 0.35));
+    background: #fff;
     color: #1d4ed8;
-    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+    transform: translateY(-1px);
 }
 
 .rewardx-tab:focus-visible {
@@ -105,20 +183,61 @@
 }
 
 .rewardx-filter {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     font-size: 0.95rem;
-    color: #334155;
+    color: #0f172a;
     font-weight: 500;
     cursor: pointer;
     user-select: none;
 }
 
 .rewardx-filter-toggle {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.rewardx-filter-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.4);
+}
+
+.rewardx-filter-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
     width: 18px;
     height: 18px;
-    accent-color: #2563eb;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+    transition: transform 0.25s ease;
+}
+
+.rewardx-filter-toggle:checked + .rewardx-filter-switch {
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
+}
+
+.rewardx-filter-toggle:checked + .rewardx-filter-switch .rewardx-filter-knob {
+    transform: translateX(20px);
+}
+
+.rewardx-filter-toggle:focus-visible + .rewardx-filter-switch {
+    outline: 2px solid #2563eb;
+    outline-offset: 3px;
+}
+
+.rewardx-filter-text {
+    white-space: nowrap;
 }
 
 .rewardx-section--hidden {
@@ -166,10 +285,11 @@
     flex-wrap: wrap;
     gap: 1.5rem;
     margin-bottom: 2rem;
-    padding: 1.25rem 1.5rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(135deg, rgba(241, 245, 249, 0.9), rgba(255, 255, 255, 0.9));
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 20px;
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
 }
 
 .rewardx-customer-insights > div {
@@ -186,17 +306,17 @@
 }
 
 .rewardx-insight-value {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 600;
     color: #0f172a;
 }
 
 .rewardx-card {
     position: relative;
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
-    border: 1px solid #e2e8f0;
+    background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(14, 165, 233, 0.15)) border-box;
+    border-radius: 22px;
+    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
+    border: 1px solid transparent;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -204,14 +324,14 @@
 }
 
 .rewardx-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
+    transform: translateY(-6px);
+    box-shadow: 0 28px 55px rgba(15, 23, 42, 0.16);
 }
 
 .rewardx-card-media {
     position: relative;
-    background: linear-gradient(135deg, #2563eb, #38bdf8);
-    height: 180px;
+    background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.55), rgba(14, 165, 233, 0.35));
+    height: 190px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -255,7 +375,7 @@
 }
 
 .rewardx-card-body {
-    padding: 1.5rem 1.5rem 0;
+    padding: 1.75rem 1.75rem 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -263,7 +383,7 @@
 }
 
 .rewardx-card-title {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     margin: 0;
     color: #0f172a;
 }
@@ -282,9 +402,9 @@
 }
 
 .rewardx-card-meta-item {
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
+    background: rgba(241, 245, 249, 0.7);
+    border-radius: 14px;
+    padding: 0.9rem 1.1rem;
 }
 
 .rewardx-card-meta-item dt {
@@ -329,28 +449,28 @@
 }
 
 .rewardx-card-footer {
-    padding: 1.25rem 1.5rem 1.5rem;
+    padding: 1.5rem 1.75rem 1.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.75rem;
 }
 
 .rewardx-redeem {
     align-self: flex-start;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
     color: #fff;
     border: none;
-    padding: 0.75rem 1.75rem;
+    padding: 0.8rem 1.9rem;
     border-radius: 999px;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     font-weight: 600;
-    box-shadow: 0 12px 25px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 16px 30px rgba(79, 70, 229, 0.28);
 }
 
 .rewardx-redeem:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 30px rgba(37, 99, 235, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 20px 36px rgba(79, 70, 229, 0.32);
 }
 
 .rewardx-redeem:disabled {
@@ -366,6 +486,36 @@
 
 .rewardx-card-note--danger {
     color: #b91c1c;
+}
+
+.rewardx-card-note--success {
+    color: #047857;
+}
+
+.rewardx-card-progress {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.rewardx-card-progress-label {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.rewardx-card-progress-value {
+    font-size: 1.1rem;
+    color: #1d4ed8;
+}
+
+.rewardx-card-progress-suffix {
+    font-size: 0.85rem;
+    color: #475569;
 }
 
 .rewardx-ledger {
@@ -481,11 +631,26 @@
         flex-direction: column;
         align-items: flex-start;
     }
+
+    .rewardx-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 2.25rem;
+    }
+
+    .rewardx-hero-stats {
+        width: 100%;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
     .rewardx-account {
         padding: 0 1rem 2.5rem;
+    }
+
+    .rewardx-hero {
+        padding: 2rem;
     }
 
     .rewardx-toolbar {
@@ -504,7 +669,12 @@
         justify-content: space-between;
         background: #f1f5f9;
         padding: 0.75rem 1rem;
-        border-radius: 12px;
+        border-radius: 14px;
+    }
+
+    .rewardx-filter-text {
+        flex: 1;
+        text-align: right;
     }
 
     .rewardx-card-meta {
@@ -540,6 +710,20 @@
         font-weight: 600;
         color: #94a3b8;
         margin-right: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .rewardx-hero {
+        padding: 1.75rem;
+    }
+
+    .rewardx-hero-summary {
+        max-width: 100%;
+    }
+
+    .rewardx-hero-stats {
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     }
 }
 
