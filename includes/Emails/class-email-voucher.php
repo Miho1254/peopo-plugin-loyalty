@@ -42,6 +42,7 @@ class Voucher_Email extends \WC_Email
             'coupon_code'   => $data['code'] ?? '',
             'coupon_amount' => $data['amount'] ?? 0,
             'coupon_expiry' => $data['expiry'] ?? '',
+            'email'         => $this,
         ];
 
         $settings  = Plugin::instance()->get_settings()->get_settings();
