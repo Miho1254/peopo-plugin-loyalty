@@ -57,6 +57,8 @@ class Frontend
                 'expiry'         => __('Hết hạn', 'woo-rewardx-lite'),
                 'redeemVoucher'  => __('Đổi voucher', 'woo-rewardx-lite'),
                 'redeemPhysical' => __('Đổi quà', 'woo-rewardx-lite'),
+                'sessionExpired' => __('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'woo-rewardx-lite'),
+                'unknownError'   => __('Đã xảy ra lỗi không xác định. Vui lòng thử lại.', 'woo-rewardx-lite'),
             ],
         ]);
     }

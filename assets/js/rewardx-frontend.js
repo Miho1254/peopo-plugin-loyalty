@@ -188,6 +188,12 @@
             nonce: rewardxFrontend.nonce
         })
             .done(function (response) {
+                if (!response || typeof response !== 'object') {
+                    showToast(rewardxFrontend.i18n.sessionExpired);
+
+                    return;
+                }
+
                 if (response.success) {
                     updateBalance(response.data.balance);
 
@@ -199,11 +205,21 @@
 
                     showToast(response.data.message);
                 } else {
-                    showToast(response.data && response.data.message ? response.data.message : 'Error');
+                    var errorMessage = response.data && response.data.message ? response.data.message : rewardxFrontend.i18n.unknownError;
+                    showToast(errorMessage);
                 }
             })
             .fail(function (xhr) {
-                var message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : 'Error';
+                var message;
+
+                if (xhr && (xhr.status === 401 || xhr.status === 403 || xhr.responseText === '0')) {
+                    message = rewardxFrontend.i18n.sessionExpired;
+                } else if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                    message = xhr.responseJSON.data.message;
+                } else {
+                    message = rewardxFrontend.i18n.unknownError;
+                }
+
                 showToast(message);
             })
             .always(function () {
