@@ -231,6 +231,43 @@ class Redeem_Handler
                 'customer_id' => $user_id,
             ]);
 
+            $customer = new \WC_Customer($user_id);
+
+            $phone = $customer->get_billing_phone();
+
+            $shipping_address = [
+                'first_name' => $customer->get_shipping_first_name() ?: $customer->get_billing_first_name(),
+                'last_name'  => $customer->get_shipping_last_name() ?: $customer->get_billing_last_name(),
+                'company'    => $customer->get_shipping_company() ?: $customer->get_billing_company(),
+                'address_1'  => $customer->get_shipping_address_1() ?: $customer->get_billing_address_1(),
+                'address_2'  => $customer->get_shipping_address_2() ?: $customer->get_billing_address_2(),
+                'city'       => $customer->get_shipping_city() ?: $customer->get_billing_city(),
+                'state'      => $customer->get_shipping_state() ?: $customer->get_billing_state(),
+                'postcode'   => $customer->get_shipping_postcode() ?: $customer->get_billing_postcode(),
+                'country'    => $customer->get_shipping_country() ?: $customer->get_billing_country(),
+            ];
+
+            $billing_address = [
+                'first_name' => $customer->get_billing_first_name() ?: $shipping_address['first_name'],
+                'last_name'  => $customer->get_billing_last_name() ?: $shipping_address['last_name'],
+                'company'    => $customer->get_billing_company() ?: $shipping_address['company'],
+                'address_1'  => $customer->get_billing_address_1() ?: $shipping_address['address_1'],
+                'address_2'  => $customer->get_billing_address_2() ?: $shipping_address['address_2'],
+                'city'       => $customer->get_billing_city() ?: $shipping_address['city'],
+                'state'      => $customer->get_billing_state() ?: $shipping_address['state'],
+                'postcode'   => $customer->get_billing_postcode() ?: $shipping_address['postcode'],
+                'country'    => $customer->get_billing_country() ?: $shipping_address['country'],
+                'phone'      => $phone,
+                'email'      => $customer->get_email(),
+            ];
+
+            $order->set_address($shipping_address, 'shipping');
+            $order->set_address($billing_address, 'billing');
+
+            if (!empty($phone)) {
+                $order->update_meta_data('_shipping_phone', $phone);
+            }
+
             $item = new \WC_Order_Item_Product();
             $item->set_name(sprintf(__('Reward: %s', 'woo-rewardx-lite'), $reward->post_title));
             $item->add_meta_data('_rewardx_reward_id', $reward->ID, true);
