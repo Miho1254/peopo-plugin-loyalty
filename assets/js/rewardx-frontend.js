@@ -58,42 +58,6 @@
         });
     }
 
-    function updateSummaryCounters() {
-        if (!$account.length) {
-            return;
-        }
-
-        var currentBalance = getCurrentBalance();
-        var counts = {
-            available: 0,
-            locked: 0,
-            oos: 0
-        };
-
-        $account.find('.rewardx-card').each(function () {
-            var $card = $(this);
-            var cost = parseInt($card.data('cost'), 10) || 0;
-            var state = $card.attr('data-state');
-            var isOutOfStock = state === 'out_of_stock';
-
-            if (isOutOfStock) {
-                counts.oos++;
-                return;
-            }
-
-            if (currentBalance >= cost) {
-                counts.available++;
-            } else {
-                counts.locked++;
-            }
-        });
-
-        var formatter = new Intl.NumberFormat();
-        $account.find('.rewardx-stat-available').text(formatter.format(counts.available));
-        $account.find('.rewardx-stat-locked').text(formatter.format(counts.locked));
-        $account.find('.rewardx-stat-oos').text(formatter.format(counts.oos));
-    }
-
     function applyRewardFilters() {
         if (!$account.length) {
             return;
@@ -102,7 +66,8 @@
         refreshCardStates();
 
         var showAvailableOnly = $account.find('.rewardx-filter-toggle').is(':checked');
-        var keyword = ($account.find('.rewardx-search-input').val() || '').toString().trim().toLowerCase();
+        var keywordField = $account.find('.rewardx-search-input');
+        var keyword = keywordField.length ? (keywordField.val() || '').toString().trim().toLowerCase() : '';
 
         $account.find('.rewardx-section[data-section]').each(function () {
             var $section = $(this);
@@ -135,7 +100,6 @@
             }
         });
 
-        updateSummaryCounters();
     }
 
     function activateTab(target) {
@@ -194,10 +158,6 @@
     });
 
     $account.on('change', '.rewardx-filter-toggle', function () {
-        applyRewardFilters();
-    });
-
-    $account.on('input', '.rewardx-search-input', function () {
         applyRewardFilters();
     });
 
