@@ -3,25 +3,58 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$physical_rewards = $rewards['physical'] ?? [];
-$voucher_rewards  = $rewards['voucher'] ?? [];
+$physical_rewards   = $rewards['physical'] ?? [];
+$voucher_rewards    = $rewards['voucher'] ?? [];
+$has_physical       = !empty($physical_rewards);
+$has_voucher        = !empty($voucher_rewards);
+$default_tab        = $has_physical ? 'physical' : ($has_voucher ? 'voucher' : '');
+$physical_tab_id    = $has_physical && $has_voucher ? 'rewardx-tab-physical' : '';
+$voucher_tab_id     = $has_physical && $has_voucher ? 'rewardx-tab-voucher' : '';
+$physical_role      = $has_physical && $has_voucher ? 'tabpanel' : 'region';
+$voucher_role       = $has_physical && $has_voucher ? 'tabpanel' : 'region';
 ?>
-<div class="rewardx-account">
+<div class="rewardx-account" data-current-points="<?php echo esc_attr($points); ?>">
     <div class="rewardx-balance">
         <h2><?php esc_html_e('Điểm của bạn', 'woo-rewardx-lite'); ?></h2>
         <p class="rewardx-points"><?php echo esc_html(number_format_i18n($points)); ?></p>
         <p class="rewardx-balance-hint"><?php esc_html_e('Đổi thưởng dễ dàng với những gợi ý được sắp xếp rõ ràng bên dưới.', 'woo-rewardx-lite'); ?></p>
     </div>
 
-    <?php if (empty($physical_rewards) && empty($voucher_rewards)) : ?>
+    <?php if (!$has_physical && !$has_voucher) : ?>
         <div class="rewardx-empty">
             <h3><?php esc_html_e('Hiện chưa có phần thưởng nào khả dụng.', 'woo-rewardx-lite'); ?></h3>
             <p><?php esc_html_e('Hãy quay lại sau hoặc tiếp tục tích điểm để nhận thêm ưu đãi hấp dẫn.', 'woo-rewardx-lite'); ?></p>
         </div>
     <?php endif; ?>
 
-    <?php if (!empty($physical_rewards)) : ?>
-        <section class="rewardx-section">
+    <?php if ($has_physical || $has_voucher) : ?>
+        <div class="rewardx-toolbar">
+            <?php if ($has_physical && $has_voucher) : ?>
+                <div class="rewardx-tabs" role="tablist" aria-label="<?php esc_attr_e('Danh mục phần thưởng', 'woo-rewardx-lite'); ?>">
+                    <button type="button" id="rewardx-tab-physical" class="rewardx-tab<?php echo $default_tab === 'physical' ? ' is-active' : ''; ?>" role="tab" aria-selected="<?php echo $default_tab === 'physical' ? 'true' : 'false'; ?>" aria-controls="rewardx-section-physical" data-target="physical">
+                        <?php esc_html_e('Quà vật lý', 'woo-rewardx-lite'); ?>
+                    </button>
+                    <button type="button" id="rewardx-tab-voucher" class="rewardx-tab<?php echo $default_tab === 'voucher' ? ' is-active' : ''; ?>" role="tab" aria-selected="<?php echo $default_tab === 'voucher' ? 'true' : 'false'; ?>" aria-controls="rewardx-section-voucher" data-target="voucher">
+                        <?php esc_html_e('Voucher', 'woo-rewardx-lite'); ?>
+                    </button>
+                </div>
+            <?php else : ?>
+                <div class="rewardx-tabs rewardx-tabs--single">
+                    <span class="rewardx-tab is-active" aria-current="true">
+                        <?php echo esc_html($has_physical ? __('Quà vật lý', 'woo-rewardx-lite') : __('Voucher', 'woo-rewardx-lite')); ?>
+                    </span>
+                </div>
+            <?php endif; ?>
+
+            <label for="rewardx-filter-available" class="rewardx-filter">
+                <input type="checkbox" id="rewardx-filter-available" class="rewardx-filter-toggle" />
+                <span><?php esc_html_e('Chỉ hiển thị phần thưởng đủ điểm', 'woo-rewardx-lite'); ?></span>
+            </label>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($has_physical) : ?>
+        <section id="rewardx-section-physical" class="rewardx-section<?php echo $default_tab !== 'physical' && $has_voucher ? ' rewardx-section--hidden' : ''; ?>" data-section="physical" role="<?php echo esc_attr($physical_role); ?>"<?php echo $physical_tab_id ? ' aria-labelledby="' . esc_attr($physical_tab_id) . '"' : ''; ?><?php echo $default_tab !== 'physical' && $has_voucher ? ' hidden' : ''; ?>>
             <div class="rewardx-section-header">
                 <div>
                     <h3><?php esc_html_e('Quà vật lý', 'woo-rewardx-lite'); ?></h3>
@@ -36,8 +69,10 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
                     $is_out_of_stock  = !$is_unlimited && $stock <= 0;
                     $has_enough_point = $points >= (int) $item['cost'];
                     $is_disabled      = $is_out_of_stock || !$has_enough_point;
+                    $status         = $is_out_of_stock ? 'out_of_stock' : ($has_enough_point ? 'available' : 'missing_points');
+                    $has_points_tag = $has_enough_point ? 'yes' : 'no';
                     ?>
-                    <article class="rewardx-card" data-reward-id="<?php echo esc_attr($item['id']); ?>" data-type="physical" data-cost="<?php echo esc_attr($item['cost']); ?>">
+                    <article class="rewardx-card" data-reward-id="<?php echo esc_attr($item['id']); ?>" data-type="physical" data-cost="<?php echo esc_attr($item['cost']); ?>" data-state="<?php echo esc_attr($status); ?>" data-has-points="<?php echo esc_attr($has_points_tag); ?>">
                         <div class="rewardx-card-media<?php echo empty($item['thumbnail']) ? ' rewardx-card-media--empty' : ''; ?>">
                             <?php if (!empty($item['thumbnail'])) : ?>
                                 <img src="<?php echo esc_url($item['thumbnail']); ?>" alt="<?php echo esc_attr($item['title']); ?>" />
@@ -79,11 +114,14 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
                     </article>
                 <?php endforeach; ?>
             </div>
+            <p class="rewardx-empty-filter" aria-live="polite" hidden>
+                <?php esc_html_e('Không tìm thấy phần thưởng phù hợp với bộ lọc hiện tại.', 'woo-rewardx-lite'); ?>
+            </p>
         </section>
     <?php endif; ?>
 
-    <?php if (!empty($voucher_rewards)) : ?>
-        <section class="rewardx-section">
+    <?php if ($has_voucher) : ?>
+        <section id="rewardx-section-voucher" class="rewardx-section<?php echo $default_tab !== 'voucher' && $has_physical ? ' rewardx-section--hidden' : ''; ?>" data-section="voucher" role="<?php echo esc_attr($voucher_role); ?>"<?php echo $voucher_tab_id ? ' aria-labelledby="' . esc_attr($voucher_tab_id) . '"' : ''; ?><?php echo $default_tab !== 'voucher' && $has_physical ? ' hidden' : ''; ?>>
             <div class="rewardx-section-header">
                 <div>
                     <h3><?php esc_html_e('Voucher', 'woo-rewardx-lite'); ?></h3>
@@ -108,8 +146,10 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
                     $is_out_of_stock  = !$is_unlimited && $stock <= 0;
                     $has_enough_point = $points >= (int) $item['cost'];
                     $is_disabled      = $is_out_of_stock || !$has_enough_point;
+                    $status         = $is_out_of_stock ? 'out_of_stock' : ($has_enough_point ? 'available' : 'missing_points');
+                    $has_points_tag = $has_enough_point ? 'yes' : 'no';
                     ?>
-                    <article class="rewardx-card" data-reward-id="<?php echo esc_attr($item['id']); ?>" data-type="voucher" data-cost="<?php echo esc_attr($item['cost']); ?>">
+                    <article class="rewardx-card" data-reward-id="<?php echo esc_attr($item['id']); ?>" data-type="voucher" data-cost="<?php echo esc_attr($item['cost']); ?>" data-state="<?php echo esc_attr($status); ?>" data-has-points="<?php echo esc_attr($has_points_tag); ?>">
                         <div class="rewardx-card-media<?php echo empty($item['thumbnail']) ? ' rewardx-card-media--empty' : ''; ?>">
                             <?php if (!empty($item['thumbnail'])) : ?>
                                 <img src="<?php echo esc_url($item['thumbnail']); ?>" alt="<?php echo esc_attr($item['title']); ?>" />
@@ -157,6 +197,9 @@ $voucher_rewards  = $rewards['voucher'] ?? [];
                     </article>
                 <?php endforeach; ?>
             </div>
+            <p class="rewardx-empty-filter" aria-live="polite" hidden>
+                <?php esc_html_e('Không tìm thấy phần thưởng phù hợp với bộ lọc hiện tại.', 'woo-rewardx-lite'); ?>
+            </p>
         </section>
     <?php endif; ?>
 

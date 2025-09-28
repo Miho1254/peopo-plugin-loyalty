@@ -5,6 +5,8 @@
         return;
     }
 
+    var $account = $('.rewardx-account');
+
     function showToast(message) {
         var $toast = $('.rewardx-toast');
 
@@ -29,8 +31,110 @@
         $('#rewardx-modal').removeClass('show').attr('aria-hidden', 'true');
     }
 
+    function getCurrentBalance() {
+        var current = parseInt($account.attr('data-current-points'), 10);
+        return isNaN(current) ? 0 : current;
+    }
+
+    function refreshCardStates() {
+        if (!$account.length) {
+            return;
+        }
+
+        var currentBalance = getCurrentBalance();
+
+        $account.find('.rewardx-card').each(function () {
+            var $card = $(this);
+            var cost = parseInt($card.data('cost'), 10) || 0;
+            var isOutOfStock = $card.attr('data-state') === 'out_of_stock';
+            var hasEnoughPoints = currentBalance >= cost;
+
+            if (!isOutOfStock) {
+                $card.attr('data-state', hasEnoughPoints ? 'available' : 'missing_points');
+                $card.find('.rewardx-redeem').prop('disabled', !hasEnoughPoints);
+            }
+
+            $card.attr('data-has-points', hasEnoughPoints ? 'yes' : 'no');
+        });
+    }
+
+    function applyAvailabilityFilter() {
+        if (!$account.length) {
+            return;
+        }
+
+        refreshCardStates();
+
+        var showAvailableOnly = $account.find('.rewardx-filter-toggle').is(':checked');
+
+        $account.find('.rewardx-section[data-section]').each(function () {
+            var $section = $(this);
+            var isHiddenSection = $section.hasClass('rewardx-section--hidden');
+            var visibleCount = 0;
+            var $cards = $section.find('.rewardx-card');
+
+            $cards.each(function () {
+                var $card = $(this);
+                var hasPoints = $card.attr('data-has-points') === 'yes';
+                var shouldShow = !showAvailableOnly || hasPoints;
+
+                $card.toggleClass('rewardx-card--hidden', !shouldShow);
+
+                if (shouldShow) {
+                    visibleCount++;
+                }
+            });
+
+            var $emptyState = $section.find('.rewardx-empty-filter');
+
+            if ($emptyState.length) {
+                if (!isHiddenSection && showAvailableOnly && visibleCount === 0 && $cards.length) {
+                    $emptyState.removeAttr('hidden');
+                } else {
+                    $emptyState.attr('hidden', 'hidden');
+                }
+            }
+        });
+    }
+
+    function activateTab(target) {
+        if (!target || !$account.length) {
+            return;
+        }
+
+        var $tabs = $account.find('.rewardx-tab[data-target]');
+
+        if (!$tabs.length) {
+            return;
+        }
+
+        $tabs.each(function () {
+            var $tab = $(this);
+            var isActive = $tab.data('target') === target;
+            $tab.toggleClass('is-active', isActive).attr('aria-selected', isActive ? 'true' : 'false');
+        });
+
+        $account.find('.rewardx-section[data-section]').each(function () {
+            var $section = $(this);
+            var matches = $section.data('section') === target;
+
+            if (matches) {
+                $section.removeClass('rewardx-section--hidden').removeAttr('hidden');
+            } else {
+                $section.addClass('rewardx-section--hidden').attr('hidden', 'hidden');
+            }
+        });
+
+        applyAvailabilityFilter();
+    }
+
     function updateBalance(balance) {
         $('.rewardx-points').text(new Intl.NumberFormat().format(balance));
+
+        if ($account.length) {
+            $account.attr('data-current-points', balance);
+            applyAvailabilityFilter();
+        }
     }
 
     $(document).on('click', '.rewardx-modal-close', function () {
@@ -43,7 +147,16 @@
         }
     });
 
-    $('.rewardx-account').on('click', '.rewardx-redeem', function (e) {
+    $account.on('click', '.rewardx-tab[data-target]', function (e) {
+        e.preventDefault();
+        activateTab($(this).data('target'));
+    });
+
+    $account.on('change', '.rewardx-filter-toggle', function () {
+        applyAvailabilityFilter();
+    });
+
+    $account.on('click', '.rewardx-redeem', function (e) {
         e.preventDefault();
 
         var $button = $(this);
@@ -92,4 +205,8 @@
                 $button.prop('disabled', false).text(type === 'voucher' ? rewardxFrontend.i18n.redeemVoucher : rewardxFrontend.i18n.redeemPhysical);
             });
     });
+
+    if ($account.length) {
+        applyAvailabilityFilter();
+    }
 })(jQuery);
