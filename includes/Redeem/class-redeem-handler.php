@@ -58,6 +58,7 @@ class Redeem_Handler
         $order = $this->create_zero_order($user_id, $reward);
 
         if (is_wp_error($order)) {
+            $this->rollback_points($user_id, $cost, sprintf(__('Hoàn điểm do đổi quà thất bại: %s', 'woo-rewardx-lite'), $reward->post_title));
             wp_send_json_error(['message' => $order->get_error_message()], 500);
         }
 
@@ -104,11 +105,18 @@ class Redeem_Handler
 
         $this->reduce_stock($reward->ID);
 
-        Emails::send_voucher($user_id, [
-            'code'   => $coupon['code'],
-            'amount' => $coupon['amount'],
-            'expiry' => $coupon['expiry'],
-        ]);
+        try {
+            Emails::send_voucher($user_id, [
+                'code'   => $coupon['code'],
+                'amount' => $coupon['amount'],
+                'expiry' => $coupon['expiry'],
+            ]);
+        } catch (\Throwable $e) {
+            $this->rollback_points($user_id, $cost, sprintf(__('Hoàn điểm do gửi voucher thất bại: %s', 'woo-rewardx-lite'), $reward->post_title));
+            $this->restore_stock($reward->ID);
+
+            wp_send_json_error(['message' => $e->getMessage()], 500);
+        }
 
         wp_send_json_success([
             'message' => __('Đổi voucher thành công!', 'woo-rewardx-lite'),
@@ -190,6 +198,22 @@ class Redeem_Handler
             }
 
             $updated = update_post_meta($reward_id, '_stock', $current - 1, $current);
+            $attempts++;
+        } while (!$updated && $attempts < 2);
+    }
+
+    private function restore_stock(int $reward_id): void
+    {
+        $stock = get_post_meta($reward_id, '_stock', true);
+
+        if ('' === $stock || (int) $stock === -1) {
+            return;
+        }
+
+        $attempts = 0;
+        do {
+            $current = (int) get_post_meta($reward_id, '_stock', true);
+            $updated = update_post_meta($reward_id, '_stock', $current + 1, $current);
             $attempts++;
         } while (!$updated && $attempts < 2);
     }
@@ -282,5 +306,18 @@ class Redeem_Handler
         } while (wc_get_coupon_id_by_code($code));
 
         return $code;
+    }
+
+    private function rollback_points(int $user_id, int $amount, string $reason): void
+    {
+        $rollback = $this->points_manager->adjust_points($user_id, $amount, [
+            'reason'   => $reason,
+            'ref_type' => 'system',
+            'ref_id'   => '',
+        ]);
+
+        if (is_wp_error($rollback)) {
+            error_log(sprintf('[RewardX] Failed to rollback points for user %d: %s', $user_id, $rollback->get_error_message()));
+        }
     }
 }
