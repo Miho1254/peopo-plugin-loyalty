@@ -280,17 +280,24 @@ class Redeem_Handler
 
         $code = $this->generate_coupon_code($user_id);
 
-        $coupon = new \WC_Coupon();
-        $coupon->set_code($code);
-        $coupon->set_amount($amount);
-        $coupon->set_discount_type('fixed_cart');
-        $coupon->set_usage_limit(1);
-        $coupon->set_individual_use(true);
-        $coupon->set_email_restrictions([$user->user_email]);
+        try {
+            $coupon = new \WC_Coupon();
+            $coupon->set_code($code);
+            $coupon->set_amount($amount);
+            $coupon->set_discount_type('fixed_cart');
+            $coupon->set_usage_limit(1);
+            $coupon->set_individual_use(true);
+            $coupon->set_email_restrictions([$user->user_email]);
 
-        $expiry = gmdate('Y-m-d', strtotime('+' . $expiry_days . ' days'));
-        $coupon->set_date_expires(strtotime($expiry . ' 23:59:59'));
-        $coupon->save();
+            $expiry = gmdate('Y-m-d', strtotime('+' . $expiry_days . ' days'));
+            $coupon->set_date_expires(strtotime($expiry . ' 23:59:59'));
+            $coupon->save();
+        } catch (\Throwable $e) {
+            return new WP_Error(
+                'rewardx_coupon_error',
+                sprintf(__('Không thể tạo voucher: %s', 'woo-rewardx-lite'), $e->getMessage())
+            );
+        }
 
         return [
             'code'   => $code,
