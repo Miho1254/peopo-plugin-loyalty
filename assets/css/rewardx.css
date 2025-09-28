@@ -133,6 +133,10 @@
     color: #1d4ed8;
 }
 
+.rewardx-overview-value--accent {
+    color: var(--rx-positive);
+}
+
 .rewardx-overview-label {
     font-size: 0.85rem;
     letter-spacing: 0.1em;
@@ -206,6 +210,14 @@
 .rewardx-toolbar:focus-within::after,
 .rewardx-toolbar:hover::after {
     opacity: 1;
+}
+
+.rewardx-toolbar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+    flex-wrap: wrap;
 }
 
 .rewardx-tabs {
@@ -327,6 +339,42 @@
 
 .rewardx-filter-text {
     color: var(--rx-muted);
+}
+
+.rewardx-search {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(241, 245, 249, 0.6);
+    border: 1px solid rgba(203, 213, 225, 0.6);
+    transition: border 0.2s ease, background 0.2s ease;
+}
+
+.rewardx-search:focus-within {
+    border-color: rgba(37, 99, 235, 0.45);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.rewardx-search-input {
+    border: none;
+    background: transparent;
+    padding: 0.35rem 0.25rem;
+    font-size: 0.95rem;
+    min-width: 200px;
+    outline: none;
+    color: var(--rx-ink);
+}
+
+.rewardx-search-input::placeholder {
+    color: var(--rx-muted);
+}
+
+.rewardx-search-icon {
+    font-size: 1rem;
+    opacity: 0.65;
 }
 
 .rewardx-section-body {
@@ -813,6 +861,19 @@
         justify-content: space-between;
     }
 
+    .rewardx-toolbar-actions {
+        flex: 1 1 100%;
+        justify-content: space-between;
+    }
+
+    .rewardx-search {
+        flex: 1 1 auto;
+    }
+
+    .rewardx-search-input {
+        width: 100%;
+    }
+
     .rewardx-ledger-head,
     .rewardx-ledger-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -836,9 +897,24 @@
         align-items: stretch;
     }
 
+    .rewardx-toolbar-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
     .rewardx-filter {
         justify-content: space-between;
         width: 100%;
+    }
+
+    .rewardx-search {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .rewardx-search-input {
+        min-width: 0;
     }
 
     .rewardx-tabs {

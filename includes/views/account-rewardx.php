@@ -60,6 +60,30 @@ foreach ($all_rewards as $reward_item) {
                     <?php echo wp_kses_post(function_exists('wc_price') ? wc_price($total_spent) : number_format_i18n($total_spent, 0)); ?>
                 </strong>
             </article>
+
+            <article class="rewardx-overview-card">
+                <header>
+                    <span class="rewardx-overview-label"><?php esc_html_e('Phần thưởng khả dụng', 'woo-rewardx-lite'); ?></span>
+                </header>
+                <strong class="rewardx-overview-value rewardx-overview-value--accent rewardx-stat-available"><?php echo esc_html(number_format_i18n($available_rewards)); ?></strong>
+                <p class="rewardx-overview-subtext"><?php esc_html_e('Bạn có thể đổi ngay lập tức.', 'woo-rewardx-lite'); ?></p>
+            </article>
+
+            <article class="rewardx-overview-card">
+                <header>
+                    <span class="rewardx-overview-label"><?php esc_html_e('Cần thêm điểm', 'woo-rewardx-lite'); ?></span>
+                </header>
+                <strong class="rewardx-overview-value rewardx-stat-locked"><?php echo esc_html(number_format_i18n($locked_rewards)); ?></strong>
+                <p class="rewardx-overview-subtext"><?php esc_html_e('Phần thưởng sẽ mở khóa khi tích đủ điểm.', 'woo-rewardx-lite'); ?></p>
+            </article>
+
+            <article class="rewardx-overview-card">
+                <header>
+                    <span class="rewardx-overview-label"><?php esc_html_e('Tạm hết hàng', 'woo-rewardx-lite'); ?></span>
+                </header>
+                <strong class="rewardx-overview-value rewardx-stat-oos"><?php echo esc_html(number_format_i18n($out_of_stock)); ?></strong>
+                <p class="rewardx-overview-subtext"><?php esc_html_e('Chúng tôi sẽ bổ sung trong thời gian sớm nhất.', 'woo-rewardx-lite'); ?></p>
+            </article>
         </div>
     </section>
 
@@ -83,6 +107,22 @@ foreach ($all_rewards as $reward_item) {
                             </span>
                         </div>
                     <?php endif; ?>
+
+                    <div class="rewardx-toolbar-actions">
+                        <label class="rewardx-search" for="rewardx-search">
+                            <span class="screen-reader-text"><?php esc_html_e('Tìm kiếm phần thưởng', 'woo-rewardx-lite'); ?></span>
+                            <input type="search" id="rewardx-search" class="rewardx-search-input" placeholder="<?php esc_attr_e('Tìm kiếm theo tên hoặc mô tả...', 'woo-rewardx-lite'); ?>" autocomplete="off" />
+                            <span class="rewardx-search-icon" aria-hidden="true">🔍</span>
+                        </label>
+
+                        <label class="rewardx-filter">
+                            <input type="checkbox" class="rewardx-filter-toggle" />
+                            <span class="rewardx-filter-switch" aria-hidden="true">
+                                <span class="rewardx-filter-knob"></span>
+                            </span>
+                            <span class="rewardx-filter-text"><?php esc_html_e('Chỉ hiện phần thưởng đổi được', 'woo-rewardx-lite'); ?></span>
+                        </label>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
