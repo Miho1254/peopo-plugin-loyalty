@@ -25,6 +25,8 @@ class Redeem_Handler
     {
         add_action('wp_ajax_rewardx_redeem_physical', [$this, 'redeem_physical']);
         add_action('wp_ajax_rewardx_redeem_voucher', [$this, 'redeem_voucher']);
+        add_action('wp_ajax_nopriv_rewardx_redeem_physical', [$this, 'redeem_physical']);
+        add_action('wp_ajax_nopriv_rewardx_redeem_voucher', [$this, 'redeem_voucher']);
     }
 
     public function redeem_physical(): void
