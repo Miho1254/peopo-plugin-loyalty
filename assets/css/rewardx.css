@@ -850,6 +850,10 @@
     border-radius: 50%;
     font-size: 1.25rem;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .rewardx-toast {
