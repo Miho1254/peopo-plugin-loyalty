@@ -420,6 +420,12 @@
     gap: 1.5rem;
 }
 
+.rewardx-card-grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
 .rewardx-subsection-header {
     display: flex;
     align-items: baseline;
@@ -460,6 +466,7 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
     position: relative;
     overflow: hidden;
+    grid-template-rows: auto 1fr auto;
 }
 
 .rewardx-card::before {
@@ -557,21 +564,27 @@
     color: #db2777;
 }
 
+.rewardx-card-header {
+    display: grid;
+    gap: 0.5rem;
+}
+
 .rewardx-card-meta {
     display: grid;
-    gap: 0.85rem;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     padding: 1rem;
     border-radius: 16px;
     background: rgba(248, 250, 252, 0.75);
+    margin: 0;
 }
 
-.rewardx-card-meta-item {
+.rewardx-card-meta > div {
     display: grid;
     gap: 0.35rem;
 }
 
-.rewardx-card-meta-label {
+.rewardx-card-meta dt {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -579,7 +592,8 @@
     font-weight: 600;
 }
 
-.rewardx-card-meta-value {
+.rewardx-card-meta dd {
+    margin: 0;
     font-size: 1rem;
     font-weight: 600;
     color: var(--rx-ink);
@@ -880,6 +894,10 @@
         padding: 2.5rem 1.25rem 3.5rem;
     }
 
+    .rewardx-card-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
     .rewardx-card-top {
         grid-template-columns: minmax(0, 1fr);
         justify-items: start;
@@ -927,6 +945,10 @@
 @media (max-width: 640px) {
     .rewardx-account {
         border-radius: 20px;
+    }
+
+    .rewardx-card-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .rewardx-section-header,
