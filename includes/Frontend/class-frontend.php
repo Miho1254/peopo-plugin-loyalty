@@ -161,16 +161,24 @@ class Frontend
             return (string) ob_get_clean();
         }
 
-        $metric        = $customers[0]['metric'] ?? 'spending';
+        $metric            = $customers[0]['metric'] ?? 'spending';
         $is_points_ranking = 'points' === $metric;
-        $subtitle     = $is_points_ranking
+        $subtitle          = $is_points_ranking
             ? __('Cảm ơn vì đã đồng hành cùng cửa hàng. Dưới đây là bảng xếp hạng %s khách hàng tích lũy nhiều điểm thưởng nhất.', 'woo-rewardx-lite')
             : __('Cảm ơn vì đã đồng hành cùng cửa hàng. Dưới đây là bảng xếp hạng %s khách hàng mua sắm nhiều nhất.', 'woo-rewardx-lite');
+        $metric_label      = $is_points_ranking
+            ? __('Bảng xếp hạng theo điểm thưởng', 'woo-rewardx-lite')
+            : __('Bảng xếp hạng theo chi tiêu', 'woo-rewardx-lite');
+
+        $top_value = isset($customers[0]['total_spent']) ? (float) $customers[0]['total_spent'] : 0.0;
 
         ob_start();
         ?>
         <div class="rewardx-top-customers">
             <div class="rewardx-top-customers__header">
+                <span class="rewardx-top-customers__metric">
+                    <?php echo esc_html($metric_label); ?>
+                </span>
                 <h3 class="rewardx-top-customers__title"><?php echo esc_html__('Top khách hàng thân thiết', 'woo-rewardx-lite'); ?></h3>
                 <p class="rewardx-top-customers__subtitle"><?php echo esc_html(sprintf(
                     /* translators: %s: limit number */
@@ -182,6 +190,11 @@ class Frontend
                 <?php foreach ($customers as $index => $customer) :
                     $position = $index + 1;
                     $class    = '';
+                    $customer_total = isset($customer['total_spent']) ? (float) $customer['total_spent'] : 0.0;
+                    $progress_ratio = $top_value > 0 ? max(0.0, min(1.0, $customer_total / $top_value)) : 0.0;
+                    $progress_value = round($progress_ratio * 100, 1);
+                    $progress_style = number_format((float) $progress_value, 1, '.', '');
+                    $progress_label = number_format_i18n((float) round($progress_value));
 
                     if (1 === $position) {
                         $class = ' rewardx-top-customers__item--gold';
@@ -190,24 +203,43 @@ class Frontend
                     } elseif (3 === $position) {
                         $class = ' rewardx-top-customers__item--bronze';
                     }
+
+                    $medal_class = '';
+                    if ($position <= 3) {
+                        $medal_class = ' rewardx-top-customers__medal--' . ($position === 1 ? 'gold' : ($position === 2 ? 'silver' : 'bronze'));
+                    }
                     ?>
                     <li class="rewardx-top-customers__item<?php echo esc_attr($class); ?>">
-                        <span class="rewardx-top-customers__rank"><?php echo esc_html($position); ?></span>
-                        <div class="rewardx-top-customers__info">
-                            <p class="rewardx-top-customers__name"><?php echo esc_html($customer['name']); ?></p>
-                            <?php if (!empty($customer['meta'])) : ?>
-                                <span class="rewardx-top-customers__meta"><?php echo esc_html($customer['meta']); ?></span>
+                        <div class="rewardx-top-customers__row">
+                            <div class="rewardx-top-customers__rank-wrapper">
+                                <span class="rewardx-top-customers__rank"><?php echo esc_html($position); ?></span>
+                                <?php if (!empty($medal_class)) : ?>
+                                    <span class="rewardx-top-customers__medal<?php echo esc_attr($medal_class); ?>" aria-hidden="true"></span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="rewardx-top-customers__info">
+                                <p class="rewardx-top-customers__name"><?php echo esc_html($customer['name']); ?></p>
+                                <?php if (!empty($customer['meta'])) : ?>
+                                    <span class="rewardx-top-customers__meta"><?php echo esc_html($customer['meta']); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ('points' === ($customer['metric'] ?? 'spending')) : ?>
+                                <span class="rewardx-top-customers__value rewardx-top-customers__value--points"><?php echo esc_html(sprintf(
+                                    /* translators: %s: points amount */
+                                    __('%s điểm', 'woo-rewardx-lite'),
+                                    number_format_i18n((int) $customer['total_spent'])
+                                )); ?></span>
+                            <?php else : ?>
+                                <span class="rewardx-top-customers__value"><?php echo wp_kses_post($this->format_currency((float) $customer['total_spent'])); ?></span>
                             <?php endif; ?>
                         </div>
-                        <?php if ('points' === ($customer['metric'] ?? 'spending')) : ?>
-                            <span class="rewardx-top-customers__value rewardx-top-customers__value--points"><?php echo esc_html(sprintf(
-                                /* translators: %s: points amount */
-                                __('%s điểm', 'woo-rewardx-lite'),
-                                number_format_i18n((int) $customer['total_spent'])
-                            )); ?></span>
-                        <?php else : ?>
-                            <span class="rewardx-top-customers__value"><?php echo wp_kses_post($this->format_currency((float) $customer['total_spent'])); ?></span>
-                        <?php endif; ?>
+                        <div class="rewardx-top-customers__progress" role="img" aria-label="<?php echo esc_attr(sprintf(
+                            /* translators: %s: percentage value. */
+                            __('Mức độ đạt được: %s%%', 'woo-rewardx-lite'),
+                            $progress_label
+                        )); ?>">
+                            <span class="rewardx-top-customers__progress-bar" style="--rewardx-progress: <?php echo esc_attr($progress_style); ?>%;"></span>
+                        </div>
                     </li>
                 <?php endforeach; ?>
             </ol>
