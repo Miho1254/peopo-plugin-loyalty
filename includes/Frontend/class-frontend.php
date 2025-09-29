@@ -258,7 +258,7 @@ class Frontend
         if ($table_exists === $table_name) {
             $results = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT user_id, first_name, last_name, email, city, total_spent FROM {$table_name} WHERE user_id > 0 ORDER BY total_spent DESC LIMIT %d",
+                    "SELECT customer_id, user_id, first_name, last_name, email, city, total_spent FROM {$table_name} WHERE total_spent > 0 ORDER BY total_spent DESC LIMIT %d",
                     $limit
                 ),
                 ARRAY_A
@@ -288,10 +288,15 @@ class Frontend
                     continue;
                 }
 
+                $total_spent = (float) $customer->get_total_spent();
+                if ($total_spent <= 0) {
+                    continue;
+                }
+
                 $customers[] = [
                     'name'        => $this->mask_customer_name((string) $customer->get_first_name(), (string) $customer->get_last_name(), (string) $customer->get_email()),
                     'meta'        => $this->format_customer_meta((string) $customer->get_billing_city()),
-                    'total_spent' => (float) $customer->get_total_spent(),
+                    'total_spent' => $total_spent,
                 ];
 
                 if (count($customers) >= $limit) {
