@@ -687,9 +687,18 @@ class Frontend
         }
 
         if (!empty($customers)) {
-            usort($customers, static function (array $a, array $b): int {
-                return $b['total_spent'] <=> $a['total_spent'];
-            });
+            $customers = array_values(array_filter(
+                $customers,
+                static function (array $customer): bool {
+                    return 'spending' === ($customer['metric'] ?? 'spending');
+                }
+            ));
+
+            if (!empty($customers)) {
+                usort($customers, static function (array $a, array $b): int {
+                    return $b['total_spent'] <=> $a['total_spent'];
+                });
+            }
         }
 
         if (is_array($all_customers)) {
