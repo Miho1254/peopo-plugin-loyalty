@@ -143,6 +143,10 @@
     color: var(--rewardx-text-dark);
 }
 
+.rewardx-top-customers__value--points {
+    font-variant-numeric: tabular-nums;
+}
+
 .rewardx-top-customers--empty {
     display: grid;
     place-items: center;

@@ -161,6 +161,12 @@ class Frontend
             return (string) ob_get_clean();
         }
 
+        $metric        = $customers[0]['metric'] ?? 'spending';
+        $is_points_ranking = 'points' === $metric;
+        $subtitle     = $is_points_ranking
+            ? __('Cảm ơn vì đã đồng hành cùng cửa hàng. Dưới đây là bảng xếp hạng %s khách hàng tích lũy nhiều điểm thưởng nhất.', 'woo-rewardx-lite')
+            : __('Cảm ơn vì đã đồng hành cùng cửa hàng. Dưới đây là bảng xếp hạng %s khách hàng mua sắm nhiều nhất.', 'woo-rewardx-lite');
+
         ob_start();
         ?>
         <div class="rewardx-top-customers">
@@ -168,7 +174,7 @@ class Frontend
                 <h3 class="rewardx-top-customers__title"><?php echo esc_html__('Top khách hàng thân thiết', 'woo-rewardx-lite'); ?></h3>
                 <p class="rewardx-top-customers__subtitle"><?php echo esc_html(sprintf(
                     /* translators: %s: limit number */
-                    esc_html__('Cảm ơn vì đã đồng hành cùng cửa hàng. Dưới đây là bảng xếp hạng %s khách hàng mua sắm nhiều nhất.', 'woo-rewardx-lite'),
+                    $subtitle,
                     number_format_i18n($limit)
                 )); ?></p>
             </div>
@@ -193,7 +199,15 @@ class Frontend
                                 <span class="rewardx-top-customers__meta"><?php echo esc_html($customer['meta']); ?></span>
                             <?php endif; ?>
                         </div>
-                        <span class="rewardx-top-customers__value"><?php echo wp_kses_post($this->format_currency($customer['total_spent'])); ?></span>
+                        <?php if ('points' === ($customer['metric'] ?? 'spending')) : ?>
+                            <span class="rewardx-top-customers__value rewardx-top-customers__value--points"><?php echo esc_html(sprintf(
+                                /* translators: %s: points amount */
+                                __('%s điểm', 'woo-rewardx-lite'),
+                                number_format_i18n((int) $customer['total_spent'])
+                            )); ?></span>
+                        <?php else : ?>
+                            <span class="rewardx-top-customers__value"><?php echo wp_kses_post($this->format_currency((float) $customer['total_spent'])); ?></span>
+                        <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
             </ol>
@@ -243,7 +257,7 @@ class Frontend
     }
 
     /**
-     * @return array<int, array{name: string, meta: string, total_spent: float}>
+     * @return array<int, array{name: string, meta: string, total_spent: float, metric: string}>
      */
     private function get_top_customers(int $limit = 20): array
     {
@@ -275,24 +289,72 @@ class Frontend
             $raw_statuses
         )));
 
-        $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name));
+        if ($this->database_table_exists($table_name)) {
+            $available_columns = [];
 
-        if ($table_exists === $table_name) {
-            $results = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT customer_id, user_id, first_name, last_name, email, city, total_spent FROM {$table_name} WHERE total_spent > 0 ORDER BY total_spent DESC LIMIT %d",
-                    $limit
-                ),
-                ARRAY_A
-            );
+            foreach (['customer_id', 'user_id', 'first_name', 'last_name', 'email', 'city', 'total_spent'] as $column) {
+                if ($this->database_table_column_exists($table_name, $column)) {
+                    $available_columns[] = $column;
+                }
+            }
 
-            if (!empty($results)) {
-                foreach ($results as $row) {
-                    $customers[] = [
-                        'name'        => $this->mask_customer_name((string) ($row['first_name'] ?? ''), (string) ($row['last_name'] ?? ''), (string) ($row['email'] ?? '')),
-                        'meta'        => $this->format_customer_meta((string) ($row['city'] ?? '')),
-                        'total_spent' => (float) ($row['total_spent'] ?? 0),
-                    ];
+            if (in_array('total_spent', $available_columns, true)) {
+                $select_columns = implode(
+                    ', ',
+                    array_map(
+                        static fn(string $column): string => "`{$column}`",
+                        $available_columns
+                    )
+                );
+
+                $results = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT {$select_columns} FROM {$table_name} WHERE total_spent > 0 ORDER BY total_spent DESC LIMIT %d",
+                        $limit
+                    ),
+                    ARRAY_A
+                );
+
+                if (!empty($results)) {
+                    foreach ($results as $row) {
+                        $total_spent = (float) ($row['total_spent'] ?? 0);
+
+                        if ($total_spent <= 0) {
+                            continue;
+                        }
+
+                        $first_name = (string) ($row['first_name'] ?? '');
+                        $last_name  = (string) ($row['last_name'] ?? '');
+                        $email      = (string) ($row['email'] ?? '');
+                        $city       = (string) ($row['city'] ?? '');
+
+                        if ('' === $first_name && '' === $last_name) {
+                            $user_id = isset($row['user_id']) ? (int) $row['user_id'] : 0;
+
+                            if ($user_id > 0) {
+                                $first_name = (string) get_user_meta($user_id, 'first_name', true);
+                                $last_name  = (string) get_user_meta($user_id, 'last_name', true);
+
+                                if ('' === $email) {
+                                    $user = get_userdata($user_id);
+                                    if ($user instanceof \WP_User) {
+                                        $email = (string) $user->user_email;
+                                    }
+                                }
+
+                                if ('' === $city) {
+                                    $city = (string) get_user_meta($user_id, 'billing_city', true);
+                                }
+                            }
+                        }
+
+                        $customers[] = [
+                            'name'        => $this->mask_customer_name($first_name, $last_name, $email),
+                            'meta'        => $this->format_customer_meta($city),
+                            'total_spent' => $total_spent,
+                            'metric'      => 'spending',
+                        ];
+                    }
                 }
             }
         }
@@ -319,6 +381,7 @@ class Frontend
                     'name'        => $this->mask_customer_name((string) $customer->get_first_name(), (string) $customer->get_last_name(), (string) $customer->get_email()),
                     'meta'        => $this->format_customer_meta((string) $customer->get_billing_city()),
                     'total_spent' => $total_spent,
+                    'metric'      => 'spending',
                 ];
 
                 if (count($customers) >= $limit) {
@@ -416,6 +479,7 @@ class Frontend
                             'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
                             'meta'        => $this->format_customer_meta($data['city']),
                             'total_spent' => (float) $data['total_spent'],
+                            'metric'      => 'spending',
                         ];
                     }
                 }
@@ -424,9 +488,17 @@ class Frontend
 
         if (empty($customers)) {
             $order_stats_table = $wpdb->prefix . 'wc_order_stats';
-            $table_exists      = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $order_stats_table));
 
-            if ($table_exists === $order_stats_table && !empty($normalized_statuses)) {
+            if (
+                $this->database_table_exists($order_stats_table)
+                && $this->database_table_column_exists($order_stats_table, 'status')
+                && $this->database_table_column_exists($order_stats_table, 'net_total')
+                && $this->database_table_column_exists($order_stats_table, 'billing_first_name')
+                && $this->database_table_column_exists($order_stats_table, 'billing_last_name')
+                && $this->database_table_column_exists($order_stats_table, 'billing_email')
+                && $this->database_table_column_exists($order_stats_table, 'billing_city')
+                && !empty($normalized_statuses)
+            ) {
                 $placeholders    = implode(',', array_fill(0, count($normalized_statuses), '%s'));
                 $prepared_values = array_merge($normalized_statuses, [$limit]);
 
@@ -453,6 +525,7 @@ class Frontend
                         'name'        => $this->mask_customer_name((string) ($row['billing_first_name'] ?? ''), (string) ($row['billing_last_name'] ?? ''), (string) ($row['billing_email'] ?? '')),
                         'meta'        => $this->format_customer_meta((string) ($row['billing_city'] ?? '')),
                         'total_spent' => $total_spent,
+                        'metric'      => 'spending',
                     ];
 
                     if (count($customers) >= $limit) {
@@ -528,6 +601,7 @@ class Frontend
                                 'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
                                 'meta'        => $this->format_customer_meta($data['city']),
                                 'total_spent' => (float) $data['total_spent'],
+                                'metric'      => 'spending',
                             ];
                         }
                     }
@@ -535,7 +609,102 @@ class Frontend
             }
         }
 
+        if (empty($customers)) {
+            $user_query = new \WP_User_Query([
+                'meta_key' => Points_Manager::META_KEY,
+                'orderby'  => 'meta_value_num',
+                'order'    => 'DESC',
+                'number'   => $limit * 2,
+                'fields'   => 'ID',
+            ]);
+
+            $user_ids = $user_query->get_results();
+
+            if (!empty($user_ids)) {
+                foreach ($user_ids as $user_id) {
+                    $user_id = (int) $user_id;
+
+                    if ($user_id <= 0) {
+                        continue;
+                    }
+
+                    $points = (int) get_user_meta($user_id, Points_Manager::META_KEY, true);
+
+                    if ($points <= 0) {
+                        continue;
+                    }
+
+                    $first_name = (string) get_user_meta($user_id, 'first_name', true);
+                    $last_name  = (string) get_user_meta($user_id, 'last_name', true);
+                    $email      = '';
+                    $city       = (string) get_user_meta($user_id, 'billing_city', true);
+
+                    $user = get_userdata($user_id);
+                    if ($user instanceof \WP_User) {
+                        $email = (string) $user->user_email;
+                    }
+
+                    $customers[] = [
+                        'name'        => $this->mask_customer_name($first_name, $last_name, $email),
+                        'meta'        => $this->format_customer_meta($city),
+                        'total_spent' => (float) $points,
+                        'metric'      => 'points',
+                    ];
+
+                    if (count($customers) >= $limit) {
+                        break;
+                    }
+                }
+            }
+        }
+
         return $customers;
+    }
+
+    private function database_table_exists(string $table): bool
+    {
+        global $wpdb;
+
+        $table = $this->normalize_db_identifier($table);
+
+        if ('' === $table) {
+            return false;
+        }
+
+        $result = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+
+        return $result === $table;
+    }
+
+    private function database_table_column_exists(string $table, string $column): bool
+    {
+        global $wpdb;
+
+        $table  = $this->normalize_db_identifier($table);
+        $column = $this->normalize_db_identifier($column);
+
+        if ('' === $table || '' === $column) {
+            return false;
+        }
+
+        $sql = sprintf('SHOW COLUMNS FROM `%s` LIKE %%s', $table);
+
+        return null !== $wpdb->get_var($wpdb->prepare($sql, $column));
+    }
+
+    private function normalize_db_identifier(string $identifier): string
+    {
+        $identifier = trim($identifier);
+
+        if ('' === $identifier) {
+            return '';
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $identifier)) {
+            return '';
+        }
+
+        return $identifier;
     }
 
     private function mask_customer_name(string $first_name, string $last_name, string $email = ''): string
