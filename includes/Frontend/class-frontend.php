@@ -146,9 +146,10 @@ class Frontend
             $limit = 20;
         }
 
-        $customers = $this->get_top_customers($limit);
+        $all_customers = [];
+        $customers     = $this->get_top_customers($limit, $all_customers);
 
-        $this->log_top_customers_data($customers, $limit);
+        $this->log_top_customers_data($all_customers, $customers, $limit);
 
         wp_enqueue_style('rewardx-top-customers');
 
@@ -259,15 +260,28 @@ class Frontend
     }
 
     /**
+     * @param array<int, array{name: string, meta: string, total_spent: float, metric: string}>|null $all_customers
+     *
      * @return array<int, array{name: string, meta: string, total_spent: float, metric: string}>
      */
-    private function get_top_customers(int $limit = 20): array
+    private function get_top_customers(int $limit = 20, ?array &$all_customers = null): array
     {
         global $wpdb;
 
-        $limit      = max(1, min($limit, 50));
-        $table_name = $wpdb->prefix . 'wc_customer_lookup';
-        $customers  = [];
+        $limit = max(1, $limit);
+
+        /**
+         * Filters the maximum number of customers that will be collected before ranking.
+         *
+         * @param int $collection_limit Default collection limit.
+         * @param int $limit            Requested leaderboard size.
+         */
+        $collection_limit = max(
+            $limit,
+            (int) apply_filters('rewardx_top_customers_collection_limit', 200, $limit)
+        );
+        $table_name        = $wpdb->prefix . 'wc_customer_lookup';
+        $customers         = [];
 
         $raw_statuses = function_exists('wc_get_is_paid_statuses') ? wc_get_is_paid_statuses() : ['completed', 'processing'];
 
@@ -312,7 +326,7 @@ class Frontend
                 $results = $wpdb->get_results(
                     $wpdb->prepare(
                         "SELECT {$select_columns} FROM {$table_name} WHERE total_spent > 0 ORDER BY total_spent DESC LIMIT %d",
-                        $limit
+                        $collection_limit
                     ),
                     ARRAY_A
                 );
@@ -361,9 +375,9 @@ class Frontend
             }
         }
 
-        if (count($customers) < $limit && class_exists('\\WC_Customer_Query')) {
+        if (count($customers) < $collection_limit && class_exists('\\WC_Customer_Query')) {
             $query = new \WC_Customer_Query([
-                'number'  => $limit,
+                'number'  => $collection_limit,
                 'orderby' => 'total_spent',
                 'order'   => 'DESC',
                 'return'  => 'objects',
@@ -386,13 +400,13 @@ class Frontend
                     'metric'      => 'spending',
                 ];
 
-                if (count($customers) >= $limit) {
+                if (count($customers) >= $collection_limit) {
                     break;
                 }
             }
         }
 
-        if (count($customers) < $limit && class_exists('\\WP_User_Query')) {
+        if (count($customers) < $collection_limit && class_exists('\\WP_User_Query')) {
             $roles = apply_filters('rewardx_top_customers_user_roles', ['customer', 'subscriber']);
 
             $roles = array_values(array_filter(array_map(
@@ -476,7 +490,7 @@ class Frontend
                         return $b['total_spent'] <=> $a['total_spent'];
                     });
 
-                    $remaining = $limit - count($customers);
+                    $remaining = $collection_limit - count($customers);
 
                     if ($remaining > 0) {
                         foreach (array_slice($aggregated, 0, $remaining, true) as $data) {
@@ -492,7 +506,7 @@ class Frontend
             }
         }
 
-        if (count($customers) < $limit) {
+        if (count($customers) < $collection_limit) {
             $order_stats_table = $wpdb->prefix . 'wc_order_stats';
 
             if (
@@ -534,14 +548,14 @@ class Frontend
                         'metric'      => 'spending',
                     ];
 
-                    if (count($customers) >= $limit) {
+                    if (count($customers) >= $collection_limit) {
                         break;
                     }
                 }
             }
         }
 
-        if (count($customers) < $limit && class_exists('\\WC_Order_Query') && function_exists('wc_get_order')) {
+        if (count($customers) < $collection_limit && class_exists('\\WC_Order_Query') && function_exists('wc_get_order')) {
             $order_statuses = array_values(array_filter(array_map(
                 static function ($status) {
                     $status = trim((string) $status);
@@ -602,7 +616,7 @@ class Frontend
                             return $b['total_spent'] <=> $a['total_spent'];
                         });
 
-                        $remaining = $limit - count($customers);
+                        $remaining = $collection_limit - count($customers);
 
                         if ($remaining > 0) {
                             foreach (array_slice($aggregated, 0, $remaining, true) as $data) {
@@ -613,7 +627,7 @@ class Frontend
                                     'metric'      => 'spending',
                                 ];
 
-                                if (count($customers) >= $limit) {
+                                if (count($customers) >= $collection_limit) {
                                     break;
                                 }
                             }
@@ -623,12 +637,12 @@ class Frontend
             }
         }
 
-        if (count($customers) < $limit) {
+        if (count($customers) < $collection_limit) {
             $user_query = new \WP_User_Query([
                 'meta_key' => Points_Manager::META_KEY,
                 'orderby'  => 'meta_value_num',
                 'order'    => 'DESC',
-                'number'   => $limit * 2,
+                'number'   => max($collection_limit, $limit * 2),
                 'fields'   => 'ID',
             ]);
 
@@ -665,29 +679,49 @@ class Frontend
                         'metric'      => 'points',
                     ];
 
-                    if (count($customers) >= $limit) {
+                    if (count($customers) >= $collection_limit) {
                         break;
                     }
                 }
             }
         }
 
-        return $customers;
+        if (!empty($customers)) {
+            usort($customers, static function (array $a, array $b): int {
+                return $b['total_spent'] <=> $a['total_spent'];
+            });
+        }
+
+        if (is_array($all_customers)) {
+            $all_customers = $customers;
+        }
+
+        return array_slice($customers, 0, $limit);
     }
 
-    private function log_top_customers_data(array $customers, int $limit): void
+    private function log_top_customers_data(array $all_customers, array $top_customers, int $limit): void
     {
         $encoding_options = defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE : 0;
 
-        $encoded = function_exists('wp_json_encode')
-            ? wp_json_encode($customers, $encoding_options)
-            : json_encode($customers, $encoding_options);
+        $all_encoded = function_exists('wp_json_encode')
+            ? wp_json_encode($all_customers, $encoding_options)
+            : json_encode($all_customers, $encoding_options);
 
-        if (false === $encoded || null === $encoded) {
-            $encoded = print_r($customers, true);
+        if (false === $all_encoded || null === $all_encoded) {
+            $all_encoded = print_r($all_customers, true);
         }
 
-        error_log(sprintf('[RewardX] Top customers (limit %d): %s', $limit, $encoded));
+        error_log(sprintf('[RewardX] All customers for leaderboard (count %d): %s', count($all_customers), $all_encoded));
+
+        $top_encoded = function_exists('wp_json_encode')
+            ? wp_json_encode($top_customers, $encoding_options)
+            : json_encode($top_customers, $encoding_options);
+
+        if (false === $top_encoded || null === $top_encoded) {
+            $top_encoded = print_r($top_customers, true);
+        }
+
+        error_log(sprintf('[RewardX] Top customers (limit %d, count %d): %s', $limit, count($top_customers), $top_encoded));
     }
 
     private function database_table_exists(string $table): bool
