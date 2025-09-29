@@ -131,11 +131,18 @@ class Frontend
 
         $customers = $this->get_top_customers($limit);
 
-        if (empty($customers)) {
-            return '';
-        }
-
         wp_enqueue_style('rewardx-top-customers');
+
+        if (empty($customers)) {
+            ob_start();
+            ?>
+            <div class="rewardx-top-customers rewardx-top-customers--empty">
+                <p class="rewardx-top-customers__empty"><?php echo esc_html__('Hiện chưa có dữ liệu xếp hạng khách hàng.', 'woo-rewardx-lite'); ?></p>
+            </div>
+            <?php
+
+            return (string) ob_get_clean();
+        }
 
         ob_start();
         ?>

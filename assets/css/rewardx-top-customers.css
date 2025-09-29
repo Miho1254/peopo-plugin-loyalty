@@ -143,6 +143,20 @@
     color: var(--rewardx-text-dark);
 }
 
+.rewardx-top-customers--empty {
+    display: grid;
+    place-items: center;
+    min-height: clamp(160px, 35vw, 220px);
+    text-align: center;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(10, 5, 42, 0.2));
+}
+
+.rewardx-top-customers__empty {
+    margin: 0;
+    font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+    color: rgba(255, 255, 255, 0.85);
+}
+
 @media (max-width: 768px) {
     .rewardx-top-customers {
         border-radius: 24px;
