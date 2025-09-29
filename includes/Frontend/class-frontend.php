@@ -24,8 +24,13 @@ class Frontend
         add_action('init', [$this, 'register_endpoint']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_enqueue_scripts', [$this, 'register_shortcode_assets']);
+        add_action('init', [$this, 'register_shortcodes']);
         add_filter('woocommerce_account_menu_items', [$this, 'add_account_menu']);
         add_action('woocommerce_account_rewardx_endpoint', [$this, 'render_account_page']);
+    }
+
+    public function register_shortcodes(): void
+    {
         add_shortcode('rewardx_top_customers', [$this, 'render_top_customers_shortcode']);
     }
 
