@@ -146,10 +146,7 @@ class Frontend
             $limit = 20;
         }
 
-        $all_customers = [];
-        $customers     = $this->get_top_customers($limit, $all_customers);
-
-        $this->log_top_customers_data($all_customers, $customers, $limit);
+        $customers = $this->get_top_customers($limit);
 
         wp_enqueue_style('rewardx-top-customers');
 
@@ -260,11 +257,9 @@ class Frontend
     }
 
     /**
-     * @param array<int, array{name: string, meta: string, total_spent: float, metric: string}>|null $all_customers
-     *
      * @return array<int, array{name: string, meta: string, total_spent: float, metric: string}>
      */
-    private function get_top_customers(int $limit = 20, ?array &$all_customers = null): array
+    private function get_top_customers(int $limit = 20): array
     {
         global $wpdb;
 
@@ -727,10 +722,6 @@ class Frontend
 
         $customers = array_values($customers);
 
-        if (is_array($all_customers)) {
-            $all_customers = $customers;
-        }
-
         return array_slice($customers, 0, $limit);
     }
 
@@ -818,31 +809,6 @@ class Frontend
         }
 
         return 'anon:' . md5(sprintf('%.2f', $total_spent));
-    }
-
-    private function log_top_customers_data(array $all_customers, array $top_customers, int $limit): void
-    {
-        $encoding_options = defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE : 0;
-
-        $all_encoded = function_exists('wp_json_encode')
-            ? wp_json_encode($all_customers, $encoding_options)
-            : json_encode($all_customers, $encoding_options);
-
-        if (false === $all_encoded || null === $all_encoded) {
-            $all_encoded = print_r($all_customers, true);
-        }
-
-        error_log(sprintf('[RewardX] All customers for leaderboard (count %d): %s', count($all_customers), $all_encoded));
-
-        $top_encoded = function_exists('wp_json_encode')
-            ? wp_json_encode($top_customers, $encoding_options)
-            : json_encode($top_customers, $encoding_options);
-
-        if (false === $top_encoded || null === $top_encoded) {
-            $top_encoded = print_r($top_customers, true);
-        }
-
-        error_log(sprintf('[RewardX] Top customers (limit %d, count %d): %s', $limit, count($top_customers), $top_encoded));
     }
 
     private function database_table_exists(string $table): bool
