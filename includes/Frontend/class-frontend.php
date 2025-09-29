@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 class Frontend
 {
     private Points_Manager $points_manager;
+    private bool $hooks_registered = false;
 
     public function __construct(Points_Manager $points_manager)
     {
@@ -21,6 +22,12 @@ class Frontend
 
     public function hooks(): void
     {
+        if ($this->hooks_registered) {
+            return;
+        }
+
+        $this->hooks_registered = true;
+
         add_action('init', [$this, 'register_endpoint']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_enqueue_scripts', [$this, 'register_shortcode_assets']);
@@ -32,6 +39,16 @@ class Frontend
     public function register_shortcodes(): void
     {
         add_shortcode('rewardx_top_customers', [$this, 'render_top_customers_shortcode']);
+
+        if (defined('REWARDX_DEBUG_SHORTCODES') && REWARDX_DEBUG_SHORTCODES) {
+            global $shortcode_tags;
+
+            if (isset($shortcode_tags['rewardx_top_customers'])) {
+                error_log('[RewardX] Shortcode rewardx_top_customers is registered');
+            } else {
+                error_log('[RewardX] Shortcode rewardx_top_customers is NOT registered');
+            }
+        }
     }
 
     public function register_endpoint(): void

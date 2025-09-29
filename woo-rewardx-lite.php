@@ -10,6 +10,8 @@ Requires at least: 6.0
 Requires PHP:      7.4
 */
 
+use RewardX\Plugin;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -74,5 +76,7 @@ add_action('plugins_loaded', static function (): void {
         return;
     }
 
-    RewardX\Plugin::instance()->boot();
+    $plugin = Plugin::instance();
+    $plugin->boot();
+    $plugin->get_frontend()->hooks();
 });
