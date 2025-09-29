@@ -23,13 +23,25 @@ class Frontend
     {
         add_action('init', [$this, 'register_endpoint']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
+        add_action('wp_enqueue_scripts', [$this, 'register_shortcode_assets']);
         add_filter('woocommerce_account_menu_items', [$this, 'add_account_menu']);
         add_action('woocommerce_account_rewardx_endpoint', [$this, 'render_account_page']);
+        add_shortcode('rewardx_top_customers', [$this, 'render_top_customers_shortcode']);
     }
 
     public function register_endpoint(): void
     {
         add_rewrite_endpoint('rewardx', EP_ROOT | EP_PAGES);
+    }
+
+    public function register_shortcode_assets(): void
+    {
+        wp_register_style(
+            'rewardx-top-customers',
+            REWARDX_URL . 'assets/css/rewardx-top-customers.css',
+            [],
+            REWARDX_VERSION
+        );
     }
 
     public function enqueue_assets(): void
@@ -101,6 +113,67 @@ class Frontend
         include REWARDX_PATH . 'includes/views/account-rewardx.php';
     }
 
+    public function render_top_customers_shortcode(array $atts = []): string
+    {
+        $atts = shortcode_atts([
+            'limit' => 20,
+        ], $atts, 'rewardx_top_customers');
+
+        $limit = (int) $atts['limit'];
+        if ($limit <= 0) {
+            $limit = 20;
+        }
+
+        $customers = $this->get_top_customers($limit);
+
+        if (empty($customers)) {
+            return '';
+        }
+
+        wp_enqueue_style('rewardx-top-customers');
+
+        ob_start();
+        ?>
+        <div class="rewardx-top-customers">
+            <div class="rewardx-top-customers__header">
+                <h3 class="rewardx-top-customers__title"><?php echo esc_html__('Top khách hàng thân thiết', 'woo-rewardx-lite'); ?></h3>
+                <p class="rewardx-top-customers__subtitle"><?php echo esc_html(sprintf(
+                    /* translators: %s: limit number */
+                    esc_html__('Cảm ơn vì đã đồng hành cùng cửa hàng. Dưới đây là bảng xếp hạng %s khách hàng mua sắm nhiều nhất.', 'woo-rewardx-lite'),
+                    number_format_i18n($limit)
+                )); ?></p>
+            </div>
+            <ol class="rewardx-top-customers__list">
+                <?php foreach ($customers as $index => $customer) :
+                    $position = $index + 1;
+                    $class    = '';
+
+                    if (1 === $position) {
+                        $class = ' rewardx-top-customers__item--gold';
+                    } elseif (2 === $position) {
+                        $class = ' rewardx-top-customers__item--silver';
+                    } elseif (3 === $position) {
+                        $class = ' rewardx-top-customers__item--bronze';
+                    }
+                    ?>
+                    <li class="rewardx-top-customers__item<?php echo esc_attr($class); ?>">
+                        <span class="rewardx-top-customers__rank"><?php echo esc_html($position); ?></span>
+                        <div class="rewardx-top-customers__info">
+                            <p class="rewardx-top-customers__name"><?php echo esc_html($customer['name']); ?></p>
+                            <?php if (!empty($customer['meta'])) : ?>
+                                <span class="rewardx-top-customers__meta"><?php echo esc_html($customer['meta']); ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <span class="rewardx-top-customers__value"><?php echo wp_kses_post($this->format_currency($customer['total_spent'])); ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+        </div>
+        <?php
+
+        return (string) ob_get_clean();
+    }
+
     private function get_rewards(): array
     {
         $args = [
@@ -138,5 +211,130 @@ class Frontend
         }
 
         return $items;
+    }
+
+    /**
+     * @return array<int, array{name: string, meta: string, total_spent: float}>
+     */
+    private function get_top_customers(int $limit = 20): array
+    {
+        global $wpdb;
+
+        $limit      = max(1, min($limit, 50));
+        $table_name = $wpdb->prefix . 'wc_customer_lookup';
+        $customers  = [];
+
+        $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name));
+
+        if ($table_exists === $table_name) {
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT user_id, first_name, last_name, email, city, total_spent FROM {$table_name} WHERE user_id > 0 ORDER BY total_spent DESC LIMIT %d",
+                    $limit
+                ),
+                ARRAY_A
+            );
+
+            if (!empty($results)) {
+                foreach ($results as $row) {
+                    $customers[] = [
+                        'name'        => $this->mask_customer_name((string) ($row['first_name'] ?? ''), (string) ($row['last_name'] ?? ''), (string) ($row['email'] ?? '')),
+                        'meta'        => $this->format_customer_meta((string) ($row['city'] ?? '')),
+                        'total_spent' => (float) ($row['total_spent'] ?? 0),
+                    ];
+                }
+            }
+        }
+
+        if (empty($customers) && class_exists('\\WC_Customer_Query')) {
+            $query = new \WC_Customer_Query([
+                'number'  => $limit,
+                'orderby' => 'total_spent',
+                'order'   => 'DESC',
+                'return'  => 'objects',
+            ]);
+
+            foreach ($query->get_results() as $customer) {
+                if (!$customer instanceof \WC_Customer) {
+                    continue;
+                }
+
+                $customers[] = [
+                    'name'        => $this->mask_customer_name((string) $customer->get_first_name(), (string) $customer->get_last_name(), (string) $customer->get_email()),
+                    'meta'        => $this->format_customer_meta((string) $customer->get_billing_city()),
+                    'total_spent' => (float) $customer->get_total_spent(),
+                ];
+
+                if (count($customers) >= $limit) {
+                    break;
+                }
+            }
+        }
+
+        return $customers;
+    }
+
+    private function mask_customer_name(string $first_name, string $last_name, string $email = ''): string
+    {
+        $full_name = trim($first_name . ' ' . $last_name);
+
+        if ('' === $full_name && '' === $email) {
+            return esc_html__('Khách hàng ẩn danh', 'woo-rewardx-lite');
+        }
+
+        if ('' !== $full_name) {
+            $parts   = preg_split('/\s+/u', $full_name) ?: [];
+            $masked  = [];
+
+            foreach ($parts as $part) {
+                $length = mb_strlen($part);
+                if ($length <= 1) {
+                    $masked[] = $part;
+
+                    continue;
+                }
+
+                $first_character = mb_substr($part, 0, 1);
+                $masked[]        = $first_character . str_repeat('*', $length - 1);
+            }
+
+            return implode(' ', $masked);
+        }
+
+        return $this->mask_email($email);
+    }
+
+    private function mask_email(string $email): string
+    {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+
+        if ('' === $local || '' === $domain) {
+            return str_repeat('*', max(3, mb_strlen($email)));
+        }
+
+        $local_length = mb_strlen($local);
+        $start        = mb_substr($local, 0, 1);
+        $end          = $local_length > 1 ? mb_substr($local, -1, 1) : '';
+        $mask_length  = max(1, $local_length - ('' === $end ? 1 : 2));
+
+        return $start . str_repeat('*', $mask_length) . $end . '@' . $domain;
+    }
+
+    private function format_customer_meta(string $city): string
+    {
+        return '' !== $city ? sprintf(
+            /* translators: %s: city name */
+            esc_html__('Khu vực: %s', 'woo-rewardx-lite'),
+            $city
+        ) : '';
+    }
+
+    private function format_currency(float $amount): string
+    {
+        if (function_exists('wc_price')) {
+            return wc_price($amount);
+        }
+
+        return number_format_i18n($amount, 0);
     }
 }
