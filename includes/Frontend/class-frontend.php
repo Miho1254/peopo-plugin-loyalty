@@ -710,59 +710,6 @@ class Frontend
             }
         }
 
-        if (count($customers) < $collection_limit) {
-            $user_query = new \WP_User_Query([
-                'meta_key' => Points_Manager::META_KEY,
-                'orderby'  => 'meta_value_num',
-                'order'    => 'DESC',
-                'number'   => $is_unlimited_collection ? -1 : max($collection_limit, $limit * 2),
-                'fields'   => 'ID',
-            ]);
-
-            $user_ids = $user_query->get_results();
-
-            if (!empty($user_ids)) {
-                foreach ($user_ids as $user_id) {
-                    $user_id = (int) $user_id;
-
-                    if ($user_id <= 0) {
-                        continue;
-                    }
-
-                    $points = (int) get_user_meta($user_id, Points_Manager::META_KEY, true);
-
-                    if ($points <= 0) {
-                        continue;
-                    }
-
-                    $first_name = (string) get_user_meta($user_id, 'first_name', true);
-                    $last_name  = (string) get_user_meta($user_id, 'last_name', true);
-                    $email      = '';
-                    $city       = (string) get_user_meta($user_id, 'billing_city', true);
-
-                    $user = get_userdata($user_id);
-                    if ($user instanceof \WP_User) {
-                        $email = (string) $user->user_email;
-                    }
-
-                    $this->add_customer_to_collection(
-                        $customers,
-                        $first_name,
-                        $last_name,
-                        $email,
-                        $city,
-                        (float) $points,
-                        'points',
-                        'user:' . $user_id
-                    );
-
-                    if (!$is_unlimited_collection && count($customers) >= $collection_limit) {
-                        break;
-                    }
-                }
-            }
-        }
-
         if (!empty($customers)) {
             $customers = array_filter(
                 $customers,
