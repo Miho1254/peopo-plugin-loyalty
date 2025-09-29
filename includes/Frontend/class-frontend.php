@@ -361,7 +361,7 @@ class Frontend
             }
         }
 
-        if (empty($customers) && class_exists('\\WC_Customer_Query')) {
+        if (count($customers) < $limit && class_exists('\\WC_Customer_Query')) {
             $query = new \WC_Customer_Query([
                 'number'  => $limit,
                 'orderby' => 'total_spent',
@@ -392,7 +392,7 @@ class Frontend
             }
         }
 
-        if (empty($customers) && class_exists('\\WP_User_Query')) {
+        if (count($customers) < $limit && class_exists('\\WP_User_Query')) {
             $roles = apply_filters('rewardx_top_customers_user_roles', ['customer', 'subscriber']);
 
             $roles = array_values(array_filter(array_map(
@@ -476,19 +476,23 @@ class Frontend
                         return $b['total_spent'] <=> $a['total_spent'];
                     });
 
-                    foreach (array_slice($aggregated, 0, $limit) as $data) {
-                        $customers[] = [
-                            'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
-                            'meta'        => $this->format_customer_meta($data['city']),
-                            'total_spent' => (float) $data['total_spent'],
-                            'metric'      => 'spending',
-                        ];
+                    $remaining = $limit - count($customers);
+
+                    if ($remaining > 0) {
+                        foreach (array_slice($aggregated, 0, $remaining, true) as $data) {
+                            $customers[] = [
+                                'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
+                                'meta'        => $this->format_customer_meta($data['city']),
+                                'total_spent' => (float) $data['total_spent'],
+                                'metric'      => 'spending',
+                            ];
+                        }
                     }
                 }
             }
         }
 
-        if (empty($customers)) {
+        if (count($customers) < $limit) {
             $order_stats_table = $wpdb->prefix . 'wc_order_stats';
 
             if (
@@ -537,7 +541,7 @@ class Frontend
             }
         }
 
-        if (empty($customers) && class_exists('\\WC_Order_Query') && function_exists('wc_get_order')) {
+        if (count($customers) < $limit && class_exists('\\WC_Order_Query') && function_exists('wc_get_order')) {
             $order_statuses = array_values(array_filter(array_map(
                 static function ($status) {
                     $status = trim((string) $status);
@@ -598,20 +602,28 @@ class Frontend
                             return $b['total_spent'] <=> $a['total_spent'];
                         });
 
-                        foreach (array_slice($aggregated, 0, $limit) as $data) {
-                            $customers[] = [
-                                'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
-                                'meta'        => $this->format_customer_meta($data['city']),
-                                'total_spent' => (float) $data['total_spent'],
-                                'metric'      => 'spending',
-                            ];
+                        $remaining = $limit - count($customers);
+
+                        if ($remaining > 0) {
+                            foreach (array_slice($aggregated, 0, $remaining, true) as $data) {
+                                $customers[] = [
+                                    'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
+                                    'meta'        => $this->format_customer_meta($data['city']),
+                                    'total_spent' => (float) $data['total_spent'],
+                                    'metric'      => 'spending',
+                                ];
+
+                                if (count($customers) >= $limit) {
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        if (empty($customers)) {
+        if (count($customers) < $limit) {
             $user_query = new \WP_User_Query([
                 'meta_key' => Points_Manager::META_KEY,
                 'orderby'  => 'meta_value_num',
