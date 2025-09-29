@@ -148,6 +148,8 @@ class Frontend
 
         $customers = $this->get_top_customers($limit);
 
+        $this->log_top_customers_data($customers, $limit);
+
         wp_enqueue_style('rewardx-top-customers');
 
         if (empty($customers)) {
@@ -659,6 +661,21 @@ class Frontend
         }
 
         return $customers;
+    }
+
+    private function log_top_customers_data(array $customers, int $limit): void
+    {
+        $encoding_options = defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE : 0;
+
+        $encoded = function_exists('wp_json_encode')
+            ? wp_json_encode($customers, $encoding_options)
+            : json_encode($customers, $encoding_options);
+
+        if (false === $encoded || null === $encoded) {
+            $encoded = print_r($customers, true);
+        }
+
+        error_log(sprintf('[RewardX] Top customers (limit %d): %s', $limit, $encoded));
     }
 
     private function database_table_exists(string $table): bool
