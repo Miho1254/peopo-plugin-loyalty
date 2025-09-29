@@ -272,14 +272,39 @@ class Frontend
 
         /**
          * Filters the maximum number of customers that will be collected before ranking.
+         * Return 0, a negative value, or strings such as "all"/"unlimited" to fetch
+         * every available customer.
          *
-         * @param int $collection_limit Default collection limit.
-         * @param int $limit            Requested leaderboard size.
+         * @param int|string $collection_limit Default collection limit.
+         * @param int        $limit            Requested leaderboard size.
          */
-        $collection_limit = max(
-            $limit,
-            (int) apply_filters('rewardx_top_customers_collection_limit', 200, $limit)
-        );
+        $raw_collection_limit = apply_filters('rewardx_top_customers_collection_limit', 200, $limit);
+        $collection_limit     = $limit;
+        $is_unlimited         = false;
+
+        if (is_string($raw_collection_limit)) {
+            $normalized_raw_limit = strtolower(trim($raw_collection_limit));
+
+            if (in_array($normalized_raw_limit, ['all', 'unlimited', '-1', '*'], true)) {
+                $is_unlimited = true;
+            }
+        }
+
+        if (!$is_unlimited) {
+            $filtered_limit = (int) $raw_collection_limit;
+
+            if ($filtered_limit <= 0) {
+                $is_unlimited = true;
+            } else {
+                $collection_limit = max($limit, $filtered_limit);
+            }
+        }
+
+        if ($is_unlimited) {
+            $collection_limit = PHP_INT_MAX;
+        }
+
+        $is_unlimited_collection = PHP_INT_MAX === $collection_limit;
         $table_name        = $wpdb->prefix . 'wc_customer_lookup';
         $customers         = [];
 
@@ -323,13 +348,13 @@ class Frontend
                     )
                 );
 
-                $results = $wpdb->get_results(
-                    $wpdb->prepare(
-                        "SELECT {$select_columns} FROM {$table_name} WHERE total_spent > 0 ORDER BY total_spent DESC LIMIT %d",
-                        $collection_limit
-                    ),
-                    ARRAY_A
-                );
+                $sql = "SELECT {$select_columns} FROM {$table_name} WHERE total_spent > 0 ORDER BY total_spent DESC";
+
+                if (!$is_unlimited_collection) {
+                    $sql .= $wpdb->prepare(' LIMIT %d', $collection_limit);
+                }
+
+                $results = $wpdb->get_results($sql, ARRAY_A);
 
                 if (!empty($results)) {
                     foreach ($results as $row) {
@@ -393,7 +418,7 @@ class Frontend
 
         if (count($customers) < $collection_limit && class_exists('\\WC_Customer_Query')) {
             $query = new \WC_Customer_Query([
-                'number'  => $collection_limit,
+                'number'  => $is_unlimited_collection ? -1 : $collection_limit,
                 'orderby' => 'total_spent',
                 'order'   => 'DESC',
                 'return'  => 'objects',
@@ -422,7 +447,7 @@ class Frontend
                     $customer_id_key
                 );
 
-                if (count($customers) >= $collection_limit) {
+                if (!$is_unlimited_collection && count($customers) >= $collection_limit) {
                     break;
                 }
             }
@@ -578,7 +603,7 @@ class Frontend
                         'spending'
                     );
 
-                    if (count($customers) >= $collection_limit) {
+                    if (!$is_unlimited_collection && count($customers) >= $collection_limit) {
                         break;
                     }
                 }
@@ -675,7 +700,7 @@ class Frontend
                                     $email_key
                                 );
 
-                                if (count($customers) >= $collection_limit) {
+                                if (!$is_unlimited_collection && count($customers) >= $collection_limit) {
                                     break;
                                 }
                             }
@@ -690,7 +715,7 @@ class Frontend
                 'meta_key' => Points_Manager::META_KEY,
                 'orderby'  => 'meta_value_num',
                 'order'    => 'DESC',
-                'number'   => max($collection_limit, $limit * 2),
+                'number'   => $is_unlimited_collection ? -1 : max($collection_limit, $limit * 2),
                 'fields'   => 'ID',
             ]);
 
@@ -731,7 +756,7 @@ class Frontend
                         'user:' . $user_id
                     );
 
-                    if (count($customers) >= $collection_limit) {
+                    if (!$is_unlimited_collection && count($customers) >= $collection_limit) {
                         break;
                     }
                 }
