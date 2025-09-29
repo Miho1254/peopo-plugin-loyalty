@@ -305,6 +305,56 @@ class Frontend
             }
         }
 
+        if (empty($customers)) {
+            $order_stats_table = $wpdb->prefix . 'wc_order_stats';
+            $table_exists      = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $order_stats_table));
+
+            if ($table_exists === $order_stats_table) {
+                $statuses = function_exists('wc_get_is_paid_statuses') ? wc_get_is_paid_statuses() : ['completed', 'processing'];
+                /**
+                 * Filters the order statuses used to build the top customers leaderboard.
+                 *
+                 * @param string[] $statuses List of order statuses.
+                 */
+                $statuses = apply_filters('rewardx_top_customers_order_statuses', array_values(array_filter($statuses)));
+
+                if (!empty($statuses)) {
+                    $placeholders    = implode(',', array_fill(0, count($statuses), '%s'));
+                    $prepared_values = array_merge($statuses, [$limit]);
+
+                    $results = $wpdb->get_results(
+                        $wpdb->prepare(
+                            "SELECT billing_first_name, billing_last_name, billing_email, billing_city, SUM(net_total) AS total_spent " .
+                            "FROM {$order_stats_table} " .
+                            "WHERE status IN ({$placeholders}) AND net_total > 0 " .
+                            "GROUP BY billing_first_name, billing_last_name, billing_email, billing_city " .
+                            "ORDER BY total_spent DESC LIMIT %d",
+                            ...$prepared_values
+                        ),
+                        ARRAY_A
+                    );
+
+                    foreach ($results as $row) {
+                        $total_spent = (float) ($row['total_spent'] ?? 0);
+
+                        if ($total_spent <= 0) {
+                            continue;
+                        }
+
+                        $customers[] = [
+                            'name'        => $this->mask_customer_name((string) ($row['billing_first_name'] ?? ''), (string) ($row['billing_last_name'] ?? ''), (string) ($row['billing_email'] ?? '')),
+                            'meta'        => $this->format_customer_meta((string) ($row['billing_city'] ?? '')),
+                            'total_spent' => $total_spent,
+                        ];
+
+                        if (count($customers) >= $limit) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         return $customers;
     }
 
