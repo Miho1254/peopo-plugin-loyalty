@@ -343,6 +343,18 @@ class Frontend
                         $last_name  = (string) ($row['last_name'] ?? '');
                         $email      = (string) ($row['email'] ?? '');
                         $city       = (string) ($row['city'] ?? '');
+                        $unique_key = '';
+
+                        $user_id = isset($row['user_id']) ? (int) $row['user_id'] : 0;
+                        if ($user_id > 0) {
+                            $unique_key = 'user:' . $user_id;
+                        } elseif (isset($row['customer_id'])) {
+                            $customer_id = (int) $row['customer_id'];
+
+                            if ($customer_id > 0) {
+                                $unique_key = 'customer:' . $customer_id;
+                            }
+                        }
 
                         if ('' === $first_name && '' === $last_name) {
                             $user_id = isset($row['user_id']) ? (int) $row['user_id'] : 0;
@@ -371,7 +383,8 @@ class Frontend
                             $email,
                             $city,
                             $total_spent,
-                            'spending'
+                            'spending',
+                            $unique_key
                         );
                     }
                 }
@@ -396,6 +409,8 @@ class Frontend
                     continue;
                 }
 
+                $customer_id_key = (int) $customer->get_id() > 0 ? 'user:' . (int) $customer->get_id() : '';
+
                 $this->add_customer_to_collection(
                     $customers,
                     (string) $customer->get_first_name(),
@@ -403,7 +418,8 @@ class Frontend
                     (string) $customer->get_email(),
                     (string) $customer->get_billing_city(),
                     $total_spent,
-                    'spending'
+                    'spending',
+                    $customer_id_key
                 );
 
                 if (count($customers) >= $collection_limit) {
@@ -488,6 +504,7 @@ class Frontend
                         'email'       => $email,
                         'city'        => $city,
                         'total_spent' => $total_spent,
+                        'user_id'     => $user_id,
                     ];
                 }
 
@@ -507,7 +524,8 @@ class Frontend
                                 $data['email'],
                                 $data['city'],
                                 (float) $data['total_spent'],
-                                'spending'
+                                'spending',
+                                isset($data['user_id']) && (int) $data['user_id'] > 0 ? 'user:' . (int) $data['user_id'] : ''
                             );
                         }
                     }
@@ -617,6 +635,7 @@ class Frontend
                                 'email'       => $email,
                                 'city'        => (string) $order->get_billing_city(),
                                 'total_spent' => 0.0,
+                                'customer_id' => $customer_id,
                             ];
                         }
 
@@ -632,6 +651,19 @@ class Frontend
 
                         if ($remaining > 0) {
                             foreach (array_slice($aggregated, 0, $remaining, true) as $data) {
+                                $customer_id = isset($data['customer_id']) ? (int) $data['customer_id'] : 0;
+                                $email_key   = '';
+
+                                if ($customer_id > 0) {
+                                    $email_key = 'user:' . $customer_id;
+                                } else {
+                                    $normalized_email = strtolower(trim((string) ($data['email'] ?? '')));
+
+                                    if ('' !== $normalized_email) {
+                                        $email_key = 'guest-email:' . $normalized_email;
+                                    }
+                                }
+
                                 $this->add_customer_to_collection(
                                     $customers,
                                     $data['first_name'],
@@ -639,7 +671,8 @@ class Frontend
                                     $data['email'],
                                     $data['city'],
                                     (float) $data['total_spent'],
-                                    'spending'
+                                    'spending',
+                                    $email_key
                                 );
 
                                 if (count($customers) >= $collection_limit) {
@@ -694,7 +727,8 @@ class Frontend
                         $email,
                         $city,
                         (float) $points,
-                        'points'
+                        'points',
+                        'user:' . $user_id
                     );
 
                     if (count($customers) >= $collection_limit) {
@@ -730,20 +764,28 @@ class Frontend
 
     /**
      * @param array<string, array{name: string, meta: string, total_spent: float, metric: string}> $customers
+     * @param string                                                                                 $unique_key Optional explicit key to prevent duplicates.
      */
-    private function add_customer_to_collection(array &$customers, string $first_name, string $last_name, string $email, string $city, float $total_spent, string $metric): bool
+    private function add_customer_to_collection(array &$customers, string $first_name, string $last_name, string $email, string $city, float $total_spent, string $metric, string $unique_key = ''): bool
     {
         if ($total_spent <= 0) {
             return false;
         }
 
-        $key  = $this->generate_customer_key($first_name, $last_name, $email, $city, $total_spent);
+        $normalized_unique_key = $this->normalize_customer_key($unique_key);
+        $key                   = '' !== $normalized_unique_key
+            ? $normalized_unique_key
+            : $this->generate_customer_key($first_name, $last_name, $email, $city, $total_spent);
         $meta = $this->format_customer_meta($city);
         $name = $this->mask_customer_name($first_name, $last_name, $email);
 
         if (isset($customers[$key])) {
             if ($total_spent > $customers[$key]['total_spent']) {
                 $customers[$key]['total_spent'] = $total_spent;
+            }
+
+            if ('' !== $normalized_unique_key && (!isset($customers[$key]['metric']) || $metric !== $customers[$key]['metric'])) {
+                $customers[$key]['metric'] = $metric;
             }
 
             if ('' !== $meta && '' === ($customers[$key]['meta'] ?? '')) {
@@ -766,6 +808,20 @@ class Frontend
         ];
 
         return true;
+    }
+
+    /**
+     * Ensures the unique customer key is normalized for consistent comparisons.
+     */
+    private function normalize_customer_key(string $unique_key): string
+    {
+        $unique_key = trim($unique_key);
+
+        if ('' === $unique_key) {
+            return '';
+        }
+
+        return strtolower($unique_key);
     }
 
     private function generate_customer_key(string $first_name, string $last_name, string $email, string $city, float $total_spent): string
