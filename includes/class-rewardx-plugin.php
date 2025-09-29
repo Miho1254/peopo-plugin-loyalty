@@ -94,7 +94,6 @@ final class Plugin
         $this->settings->register();
         $this->reward_cpt->hooks();
         $this->transaction_cpt->hooks();
-        $this->frontend->hooks();
         $this->admin->hooks();
         $this->redeem_handler->hooks();
         $this->emails->hooks();
@@ -117,5 +116,10 @@ final class Plugin
     public function get_settings(): Settings
     {
         return $this->settings;
+    }
+
+    public function get_frontend(): Frontend
+    {
+        return $this->frontend;
     }
 }
