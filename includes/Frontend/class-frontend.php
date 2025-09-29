@@ -784,8 +784,12 @@ class Frontend
                 $customers[$key]['total_spent'] = $total_spent;
             }
 
-            if ('' !== $normalized_unique_key && (!isset($customers[$key]['metric']) || $metric !== $customers[$key]['metric'])) {
-                $customers[$key]['metric'] = $metric;
+            if ('' !== $normalized_unique_key) {
+                $current_metric = $customers[$key]['metric'] ?? '';
+
+                if ('spending' === $metric || '' === $current_metric) {
+                    $customers[$key]['metric'] = $metric;
+                }
             }
 
             if ('' !== $meta && '' === ($customers[$key]['meta'] ?? '')) {
