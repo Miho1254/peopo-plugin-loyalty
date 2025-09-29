@@ -253,6 +253,28 @@ class Frontend
         $table_name = $wpdb->prefix . 'wc_customer_lookup';
         $customers  = [];
 
+        $raw_statuses = function_exists('wc_get_is_paid_statuses') ? wc_get_is_paid_statuses() : ['completed', 'processing'];
+
+        /**
+         * Filters the order statuses used to build the top customers leaderboard.
+         *
+         * @param string[] $statuses List of order statuses.
+         */
+        $raw_statuses = apply_filters('rewardx_top_customers_order_statuses', array_values(array_filter($raw_statuses)));
+
+        $normalized_statuses = array_values(array_filter(array_map(
+            static function ($status) {
+                $status = trim((string) $status);
+
+                if ('' === $status) {
+                    return '';
+                }
+
+                return 0 === strpos($status, 'wc-') ? $status : 'wc-' . $status;
+            },
+            $raw_statuses
+        )));
+
         $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name));
 
         if ($table_exists === $table_name) {
@@ -305,63 +327,208 @@ class Frontend
             }
         }
 
+        if (empty($customers) && class_exists('\\WP_User_Query')) {
+            $roles = apply_filters('rewardx_top_customers_user_roles', ['customer', 'subscriber']);
+
+            $roles = array_values(array_filter(array_map(
+                static function ($role): string {
+                    return (string) $role;
+                },
+                is_array($roles) ? $roles : []
+            )));
+
+            $query_args = [
+                'fields' => 'ID',
+                'number' => (int) apply_filters('rewardx_top_customers_user_query_number', 200),
+            ];
+
+            if (!empty($roles)) {
+                $query_args['role__in'] = $roles;
+            }
+
+            $user_query = new \WP_User_Query($query_args);
+            $user_ids   = $user_query->get_results();
+
+            if (!empty($user_ids)) {
+                $aggregated = [];
+
+                foreach ($user_ids as $user_id) {
+                    $user_id = (int) $user_id;
+
+                    if ($user_id <= 0) {
+                        continue;
+                    }
+
+                    $total_spent = function_exists('wc_get_customer_total_spent') ? (float) wc_get_customer_total_spent($user_id) : 0.0;
+
+                    if ($total_spent <= 0) {
+                        continue;
+                    }
+
+                    $first_name = '';
+                    $last_name  = '';
+                    $email      = '';
+                    $city       = '';
+
+                    if (class_exists('\\WC_Customer')) {
+                        $customer = new \WC_Customer($user_id);
+
+                        if ($customer instanceof \WC_Customer) {
+                            $first_name = (string) $customer->get_first_name();
+                            $last_name  = (string) $customer->get_last_name();
+                            $email      = (string) $customer->get_email();
+                            $city       = (string) $customer->get_billing_city();
+                        }
+                    }
+
+                    if ('' === $first_name && '' === $last_name) {
+                        $first_name = (string) get_user_meta($user_id, 'first_name', true);
+                        $last_name  = (string) get_user_meta($user_id, 'last_name', true);
+                    }
+
+                    if ('' === $email) {
+                        $user  = get_userdata($user_id);
+                        $email = $user instanceof \WP_User ? (string) $user->user_email : '';
+                    }
+
+                    if ('' === $city) {
+                        $city = (string) get_user_meta($user_id, 'billing_city', true);
+                    }
+
+                    $key = 'user-' . $user_id;
+
+                    $aggregated[$key] = [
+                        'first_name'  => $first_name,
+                        'last_name'   => $last_name,
+                        'email'       => $email,
+                        'city'        => $city,
+                        'total_spent' => $total_spent,
+                    ];
+                }
+
+                if (!empty($aggregated)) {
+                    uasort($aggregated, static function (array $a, array $b): int {
+                        return $b['total_spent'] <=> $a['total_spent'];
+                    });
+
+                    foreach (array_slice($aggregated, 0, $limit) as $data) {
+                        $customers[] = [
+                            'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
+                            'meta'        => $this->format_customer_meta($data['city']),
+                            'total_spent' => (float) $data['total_spent'],
+                        ];
+                    }
+                }
+            }
+        }
+
         if (empty($customers)) {
             $order_stats_table = $wpdb->prefix . 'wc_order_stats';
             $table_exists      = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $order_stats_table));
 
-            if ($table_exists === $order_stats_table) {
-                $statuses = function_exists('wc_get_is_paid_statuses') ? wc_get_is_paid_statuses() : ['completed', 'processing'];
-                /**
-                 * Filters the order statuses used to build the top customers leaderboard.
-                 *
-                 * @param string[] $statuses List of order statuses.
-                 */
-                $statuses = apply_filters('rewardx_top_customers_order_statuses', array_values(array_filter($statuses)));
+            if ($table_exists === $order_stats_table && !empty($normalized_statuses)) {
+                $placeholders    = implode(',', array_fill(0, count($normalized_statuses), '%s'));
+                $prepared_values = array_merge($normalized_statuses, [$limit]);
 
-                $statuses = array_values(array_filter(array_map(
-                    static function ($status) {
-                        $status = trim((string) $status);
+                $results = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT billing_first_name, billing_last_name, billing_email, billing_city, SUM(net_total) AS total_spent " .
+                        "FROM {$order_stats_table} " .
+                        "WHERE status IN ({$placeholders}) AND net_total > 0 " .
+                        "GROUP BY billing_first_name, billing_last_name, billing_email, billing_city " .
+                        "ORDER BY total_spent DESC LIMIT %d",
+                        ...$prepared_values
+                    ),
+                    ARRAY_A
+                );
 
-                        if ('' === $status) {
-                            return '';
-                        }
+                foreach ($results as $row) {
+                    $total_spent = (float) ($row['total_spent'] ?? 0);
 
-                        return 0 === strpos($status, 'wc-') ? $status : 'wc-' . $status;
-                    },
-                    $statuses
-                )));
+                    if ($total_spent <= 0) {
+                        continue;
+                    }
 
-                if (!empty($statuses)) {
-                    $placeholders    = implode(',', array_fill(0, count($statuses), '%s'));
-                    $prepared_values = array_merge($statuses, [$limit]);
+                    $customers[] = [
+                        'name'        => $this->mask_customer_name((string) ($row['billing_first_name'] ?? ''), (string) ($row['billing_last_name'] ?? ''), (string) ($row['billing_email'] ?? '')),
+                        'meta'        => $this->format_customer_meta((string) ($row['billing_city'] ?? '')),
+                        'total_spent' => $total_spent,
+                    ];
 
-                    $results = $wpdb->get_results(
-                        $wpdb->prepare(
-                            "SELECT billing_first_name, billing_last_name, billing_email, billing_city, SUM(net_total) AS total_spent " .
-                            "FROM {$order_stats_table} " .
-                            "WHERE status IN ({$placeholders}) AND net_total > 0 " .
-                            "GROUP BY billing_first_name, billing_last_name, billing_email, billing_city " .
-                            "ORDER BY total_spent DESC LIMIT %d",
-                            ...$prepared_values
-                        ),
-                        ARRAY_A
-                    );
+                    if (count($customers) >= $limit) {
+                        break;
+                    }
+                }
+            }
+        }
 
-                    foreach ($results as $row) {
-                        $total_spent = (float) ($row['total_spent'] ?? 0);
+        if (empty($customers) && class_exists('\\WC_Order_Query') && function_exists('wc_get_order')) {
+            $order_statuses = array_values(array_filter(array_map(
+                static function ($status) {
+                    $status = trim((string) $status);
 
-                        if ($total_spent <= 0) {
+                    if ('' === $status) {
+                        return '';
+                    }
+
+                    return 0 === strpos($status, 'wc-') ? substr($status, 3) : $status;
+                },
+                $normalized_statuses
+            )));
+
+            if (!empty($order_statuses)) {
+                $order_query = new \WC_Order_Query([
+                    'status' => $order_statuses,
+                    'limit'  => -1,
+                    'return' => 'ids',
+                ]);
+
+                $order_ids = $order_query->get_orders();
+
+                if (!empty($order_ids)) {
+                    $aggregated = [];
+
+                    foreach ($order_ids as $order_id) {
+                        $order = wc_get_order($order_id);
+
+                        if (!$order instanceof \WC_Order) {
                             continue;
                         }
 
-                        $customers[] = [
-                            'name'        => $this->mask_customer_name((string) ($row['billing_first_name'] ?? ''), (string) ($row['billing_last_name'] ?? ''), (string) ($row['billing_email'] ?? '')),
-                            'meta'        => $this->format_customer_meta((string) ($row['billing_city'] ?? '')),
-                            'total_spent' => $total_spent,
-                        ];
+                        $total = (float) $order->get_total();
 
-                        if (count($customers) >= $limit) {
-                            break;
+                        if ($total <= 0) {
+                            continue;
+                        }
+
+                        $customer_id = (int) $order->get_customer_id();
+                        $email       = (string) $order->get_billing_email();
+                        $key         = $customer_id > 0 ? 'user-' . $customer_id : 'guest-' . ('' !== $email ? strtolower($email) : $order_id);
+
+                        if (!isset($aggregated[$key])) {
+                            $aggregated[$key] = [
+                                'first_name'  => (string) $order->get_billing_first_name(),
+                                'last_name'   => (string) $order->get_billing_last_name(),
+                                'email'       => $email,
+                                'city'        => (string) $order->get_billing_city(),
+                                'total_spent' => 0.0,
+                            ];
+                        }
+
+                        $aggregated[$key]['total_spent'] += $total;
+                    }
+
+                    if (!empty($aggregated)) {
+                        uasort($aggregated, static function (array $a, array $b): int {
+                            return $b['total_spent'] <=> $a['total_spent'];
+                        });
+
+                        foreach (array_slice($aggregated, 0, $limit) as $data) {
+                            $customers[] = [
+                                'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
+                                'meta'        => $this->format_customer_meta($data['city']),
+                                'total_spent' => (float) $data['total_spent'],
+                            ];
                         }
                     }
                 }
