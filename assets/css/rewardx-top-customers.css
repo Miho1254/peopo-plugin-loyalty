@@ -1,0 +1,187 @@
+:root {
+    --rewardx-gradient-start: #654de4;
+    --rewardx-gradient-end: #9f6af7;
+    --rewardx-card-bg: rgba(255, 255, 255, 0.92);
+    --rewardx-card-border: rgba(255, 255, 255, 0.45);
+    --rewardx-text-dark: #1a1330;
+    --rewardx-text-muted: #4f4579;
+    --rewardx-highlight-gold: #f8d57e;
+    --rewardx-highlight-silver: #e5e7ef;
+    --rewardx-highlight-bronze: #f3c7a2;
+}
+
+.rewardx-top-customers {
+    --gap: clamp(16px, 4vw, 28px);
+    position: relative;
+    margin: 0 auto;
+    padding: clamp(20px, 5vw, 32px);
+    border-radius: 28px;
+    background: linear-gradient(135deg, var(--rewardx-gradient-start), var(--rewardx-gradient-end));
+    overflow: hidden;
+    color: #fff;
+    max-width: min(960px, 96vw);
+    box-shadow: 0 20px 45px rgba(64, 51, 144, 0.22);
+    isolation: isolate;
+}
+
+.rewardx-top-customers::before,
+.rewardx-top-customers::after {
+    content: "";
+    position: absolute;
+    inset: auto;
+    border-radius: 50%;
+    filter: blur(0);
+    opacity: 0.25;
+    z-index: -1;
+}
+
+.rewardx-top-customers::before {
+    width: clamp(120px, 28vw, 220px);
+    height: clamp(120px, 28vw, 220px);
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.75), transparent 65%);
+    top: -10%;
+    right: -6%;
+}
+
+.rewardx-top-customers::after {
+    width: clamp(160px, 32vw, 260px);
+    height: clamp(160px, 32vw, 260px);
+    background: radial-gradient(circle at center, rgba(10, 5, 42, 0.35), transparent 70%);
+    bottom: -18%;
+    left: -10%;
+}
+
+.rewardx-top-customers__header {
+    text-align: center;
+    margin-bottom: var(--gap);
+}
+
+.rewardx-top-customers__title {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 0;
+}
+
+.rewardx-top-customers__subtitle {
+    font-size: clamp(0.9rem, 2.2vw, 1.05rem);
+    color: rgba(255, 255, 255, 0.78);
+    margin-top: 8px;
+}
+
+.rewardx-top-customers__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: clamp(10px, 2vw, 14px);
+}
+
+.rewardx-top-customers__item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: clamp(12px, 2.4vw, 16px);
+    padding: clamp(14px, 3vw, 18px);
+    border-radius: 18px;
+    background: var(--rewardx-card-bg);
+    border: 1px solid var(--rewardx-card-border);
+    backdrop-filter: blur(6px);
+    color: var(--rewardx-text-dark);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rewardx-top-customers__item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(34, 25, 78, 0.2);
+}
+
+.rewardx-top-customers__rank {
+    width: clamp(38px, 9vw, 52px);
+    height: clamp(38px, 9vw, 52px);
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: clamp(1rem, 2.8vw, 1.3rem);
+    color: var(--rewardx-text-dark);
+    background: var(--rewardx-highlight-silver);
+}
+
+.rewardx-top-customers__item--gold .rewardx-top-customers__rank {
+    background: linear-gradient(135deg, #f8d57e, #f3b63f);
+}
+
+.rewardx-top-customers__item--silver .rewardx-top-customers__rank {
+    background: linear-gradient(135deg, #e5e7ef, #c3c8d6);
+}
+
+.rewardx-top-customers__item--bronze .rewardx-top-customers__rank {
+    background: linear-gradient(135deg, #f3c7a2, #d28c4a);
+}
+
+.rewardx-top-customers__info {
+    display: grid;
+    gap: 4px;
+}
+
+.rewardx-top-customers__name {
+    font-weight: 600;
+    font-size: clamp(1rem, 2.5vw, 1.15rem);
+    color: var(--rewardx-text-dark);
+    margin: 0;
+}
+
+.rewardx-top-customers__meta {
+    font-size: clamp(0.85rem, 2.2vw, 0.95rem);
+    color: var(--rewardx-text-muted);
+}
+
+.rewardx-top-customers__value {
+    font-weight: 700;
+    font-size: clamp(1rem, 2.5vw, 1.15rem);
+    color: var(--rewardx-text-dark);
+}
+
+@media (max-width: 768px) {
+    .rewardx-top-customers {
+        border-radius: 24px;
+    }
+
+    .rewardx-top-customers__item {
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "rank name"
+            "rank meta"
+            "rank value";
+        align-items: start;
+    }
+
+    .rewardx-top-customers__rank {
+        grid-area: rank;
+    }
+
+    .rewardx-top-customers__info {
+        grid-area: name;
+    }
+
+    .rewardx-top-customers__meta {
+        grid-area: meta;
+    }
+
+    .rewardx-top-customers__value {
+        grid-area: value;
+        justify-self: start;
+        margin-top: 4px;
+    }
+}
+
+@media (max-width: 520px) {
+    .rewardx-top-customers {
+        padding: clamp(18px, 6vw, 22px);
+    }
+
+    .rewardx-top-customers__item {
+        padding: clamp(12px, 5vw, 16px);
+    }
+}
