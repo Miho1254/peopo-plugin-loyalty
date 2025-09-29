@@ -364,12 +364,15 @@ class Frontend
                             }
                         }
 
-                        $customers[] = [
-                            'name'        => $this->mask_customer_name($first_name, $last_name, $email),
-                            'meta'        => $this->format_customer_meta($city),
-                            'total_spent' => $total_spent,
-                            'metric'      => 'spending',
-                        ];
+                        $this->add_customer_to_collection(
+                            $customers,
+                            $first_name,
+                            $last_name,
+                            $email,
+                            $city,
+                            $total_spent,
+                            'spending'
+                        );
                     }
                 }
             }
@@ -393,12 +396,15 @@ class Frontend
                     continue;
                 }
 
-                $customers[] = [
-                    'name'        => $this->mask_customer_name((string) $customer->get_first_name(), (string) $customer->get_last_name(), (string) $customer->get_email()),
-                    'meta'        => $this->format_customer_meta((string) $customer->get_billing_city()),
-                    'total_spent' => $total_spent,
-                    'metric'      => 'spending',
-                ];
+                $this->add_customer_to_collection(
+                    $customers,
+                    (string) $customer->get_first_name(),
+                    (string) $customer->get_last_name(),
+                    (string) $customer->get_email(),
+                    (string) $customer->get_billing_city(),
+                    $total_spent,
+                    'spending'
+                );
 
                 if (count($customers) >= $collection_limit) {
                     break;
@@ -494,12 +500,15 @@ class Frontend
 
                     if ($remaining > 0) {
                         foreach (array_slice($aggregated, 0, $remaining, true) as $data) {
-                            $customers[] = [
-                                'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
-                                'meta'        => $this->format_customer_meta($data['city']),
-                                'total_spent' => (float) $data['total_spent'],
-                                'metric'      => 'spending',
-                            ];
+                            $this->add_customer_to_collection(
+                                $customers,
+                                $data['first_name'],
+                                $data['last_name'],
+                                $data['email'],
+                                $data['city'],
+                                (float) $data['total_spent'],
+                                'spending'
+                            );
                         }
                     }
                 }
@@ -541,12 +550,15 @@ class Frontend
                         continue;
                     }
 
-                    $customers[] = [
-                        'name'        => $this->mask_customer_name((string) ($row['billing_first_name'] ?? ''), (string) ($row['billing_last_name'] ?? ''), (string) ($row['billing_email'] ?? '')),
-                        'meta'        => $this->format_customer_meta((string) ($row['billing_city'] ?? '')),
-                        'total_spent' => $total_spent,
-                        'metric'      => 'spending',
-                    ];
+                    $this->add_customer_to_collection(
+                        $customers,
+                        (string) ($row['billing_first_name'] ?? ''),
+                        (string) ($row['billing_last_name'] ?? ''),
+                        (string) ($row['billing_email'] ?? ''),
+                        (string) ($row['billing_city'] ?? ''),
+                        $total_spent,
+                        'spending'
+                    );
 
                     if (count($customers) >= $collection_limit) {
                         break;
@@ -620,12 +632,15 @@ class Frontend
 
                         if ($remaining > 0) {
                             foreach (array_slice($aggregated, 0, $remaining, true) as $data) {
-                                $customers[] = [
-                                    'name'        => $this->mask_customer_name($data['first_name'], $data['last_name'], $data['email']),
-                                    'meta'        => $this->format_customer_meta($data['city']),
-                                    'total_spent' => (float) $data['total_spent'],
-                                    'metric'      => 'spending',
-                                ];
+                                $this->add_customer_to_collection(
+                                    $customers,
+                                    $data['first_name'],
+                                    $data['last_name'],
+                                    $data['email'],
+                                    $data['city'],
+                                    (float) $data['total_spent'],
+                                    'spending'
+                                );
 
                                 if (count($customers) >= $collection_limit) {
                                     break;
@@ -672,12 +687,15 @@ class Frontend
                         $email = (string) $user->user_email;
                     }
 
-                    $customers[] = [
-                        'name'        => $this->mask_customer_name($first_name, $last_name, $email),
-                        'meta'        => $this->format_customer_meta($city),
-                        'total_spent' => (float) $points,
-                        'metric'      => 'points',
-                    ];
+                    $this->add_customer_to_collection(
+                        $customers,
+                        $first_name,
+                        $last_name,
+                        $email,
+                        $city,
+                        (float) $points,
+                        'points'
+                    );
 
                     if (count($customers) >= $collection_limit) {
                         break;
@@ -687,25 +705,87 @@ class Frontend
         }
 
         if (!empty($customers)) {
-            $customers = array_values(array_filter(
+            $customers = array_filter(
                 $customers,
                 static function (array $customer): bool {
                     return 'spending' === ($customer['metric'] ?? 'spending');
                 }
-            ));
+            );
 
             if (!empty($customers)) {
-                usort($customers, static function (array $a, array $b): int {
+                uasort($customers, static function (array $a, array $b): int {
                     return $b['total_spent'] <=> $a['total_spent'];
                 });
             }
         }
+
+        $customers = array_values($customers);
 
         if (is_array($all_customers)) {
             $all_customers = $customers;
         }
 
         return array_slice($customers, 0, $limit);
+    }
+
+    /**
+     * @param array<string, array{name: string, meta: string, total_spent: float, metric: string}> $customers
+     */
+    private function add_customer_to_collection(array &$customers, string $first_name, string $last_name, string $email, string $city, float $total_spent, string $metric): bool
+    {
+        if ($total_spent <= 0) {
+            return false;
+        }
+
+        $key  = $this->generate_customer_key($first_name, $last_name, $email, $city, $total_spent);
+        $meta = $this->format_customer_meta($city);
+        $name = $this->mask_customer_name($first_name, $last_name, $email);
+
+        if (isset($customers[$key])) {
+            if ($total_spent > $customers[$key]['total_spent']) {
+                $customers[$key]['total_spent'] = $total_spent;
+            }
+
+            if ('' !== $meta && '' === ($customers[$key]['meta'] ?? '')) {
+                $customers[$key]['meta'] = $meta;
+            }
+
+            $anonymous_label = esc_html__('Khách hàng ẩn danh', 'woo-rewardx-lite');
+            if ($name !== $anonymous_label && ($customers[$key]['name'] ?? '') === $anonymous_label) {
+                $customers[$key]['name'] = $name;
+            }
+
+            return false;
+        }
+
+        $customers[$key] = [
+            'name'        => $name,
+            'meta'        => $meta,
+            'total_spent' => $total_spent,
+            'metric'      => $metric,
+        ];
+
+        return true;
+    }
+
+    private function generate_customer_key(string $first_name, string $last_name, string $email, string $city, float $total_spent): string
+    {
+        $normalized_email = strtolower(trim($email));
+        if ('' !== $normalized_email) {
+            return 'email:' . $normalized_email;
+        }
+
+        $normalized_name = trim($first_name . ' ' . $last_name);
+        if ('' !== $normalized_name) {
+            return 'name:' . mb_strtolower($normalized_name);
+        }
+
+        $normalized_city = trim($city);
+        if ('' !== $normalized_city) {
+            return 'city:' . mb_strtolower($normalized_city);
+        }
+
+        return 'anon:' . md5(sprintf('%.2f', $total_spent));
     }
 
     private function log_top_customers_data(array $all_customers, array $top_customers, int $limit): void
