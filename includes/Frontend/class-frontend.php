@@ -318,6 +318,19 @@ class Frontend
                  */
                 $statuses = apply_filters('rewardx_top_customers_order_statuses', array_values(array_filter($statuses)));
 
+                $statuses = array_values(array_filter(array_map(
+                    static function ($status) {
+                        $status = trim((string) $status);
+
+                        if ('' === $status) {
+                            return '';
+                        }
+
+                        return 0 === strpos($status, 'wc-') ? $status : 'wc-' . $status;
+                    },
+                    $statuses
+                )));
+
                 if (!empty($statuses)) {
                     $placeholders    = implode(',', array_fill(0, count($statuses), '%s'));
                     $prepared_values = array_merge($statuses, [$limit]);
