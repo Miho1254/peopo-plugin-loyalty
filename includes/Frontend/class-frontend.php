@@ -38,6 +38,7 @@ class Frontend
         add_action('init', [$this, 'register_shortcodes']);
         add_filter('woocommerce_account_menu_items', [$this, 'add_account_menu']);
         add_action('woocommerce_account_rewardx_endpoint', [$this, 'render_account_page']);
+        add_action('template_redirect', [$this, 'maybe_apply_rank_coupons']);
     }
 
     public function register_shortcodes(): void
@@ -153,6 +154,166 @@ class Frontend
         $amount_to_next = null !== $next_threshold ? max(0.0, $next_threshold - $total_spent) : 0.0;
 
         include REWARDX_PATH . 'includes/views/account-rewardx.php';
+    }
+
+    public function maybe_apply_rank_coupons(): void
+    {
+        if (is_admin()) {
+            return;
+        }
+
+        if (function_exists('wp_doing_ajax') && wp_doing_ajax()) {
+            return;
+        }
+
+        if (!is_user_logged_in()) {
+            return;
+        }
+
+        if (!function_exists('is_checkout') || !is_checkout()) {
+            return;
+        }
+
+        if (!function_exists('WC')) {
+            return;
+        }
+
+        $woocommerce = WC();
+        $cart        = isset($woocommerce->cart) ? $woocommerce->cart : null;
+
+        if (!$cart) {
+            return;
+        }
+
+        $user_id     = get_current_user_id();
+        $total_spent = function_exists('wc_get_customer_total_spent') ? (float) wc_get_customer_total_spent($user_id) : 0.0;
+        $rank        = $this->rank_manager->get_rank_for_amount($total_spent);
+        $coupons     = $this->extract_rank_coupons($rank);
+
+        if (empty($coupons)) {
+            return;
+        }
+
+        $session = isset($woocommerce->session) ? $woocommerce->session : null;
+
+        if (!$session) {
+            return;
+        }
+
+        $rank_signature = $this->generate_rank_coupon_signature($rank, $coupons);
+        $stored_signature = $session->get('rewardx_rank_coupon_signature');
+
+        if ($stored_signature !== $rank_signature) {
+            $session->set('rewardx_rank_coupon_signature', $rank_signature);
+            $session->set('rewardx_rank_removed_coupons', []);
+        }
+
+        $removed = $session->get('rewardx_rank_removed_coupons');
+        $removed = is_array($removed) ? array_values(array_unique(array_map('strval', $removed))) : [];
+
+        $remove_request = '';
+        if (isset($_GET['remove_coupon'])) {
+            $remove_request = wp_unslash((string) $_GET['remove_coupon']);
+            if (function_exists('wc_format_coupon_code')) {
+                $remove_request = wc_format_coupon_code($remove_request);
+            } else {
+                $remove_request = sanitize_text_field($remove_request);
+            }
+        }
+
+        if ('' !== $remove_request && in_array($remove_request, $coupons, true)) {
+            $removed[] = $remove_request;
+            $removed = array_values(array_unique($removed));
+            $session->set('rewardx_rank_removed_coupons', $removed);
+
+            return;
+        }
+
+        $coupons = array_values(array_diff($coupons, $removed));
+
+        if (empty($coupons)) {
+            return;
+        }
+
+        foreach ($coupons as $coupon_code) {
+            if ($cart->has_discount($coupon_code)) {
+                continue;
+            }
+
+            try {
+                $coupon = new \WC_Coupon($coupon_code);
+            } catch (\Exception $e) {
+                continue;
+            }
+
+            if (!$coupon->get_id()) {
+                continue;
+            }
+
+            try {
+                $cart->apply_coupon($coupon_code);
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+    }
+
+    private function extract_rank_coupons(?array $rank): array
+    {
+        if (null === $rank) {
+            return [];
+        }
+
+        $coupons = $rank['coupons'] ?? [];
+
+        if (is_string($coupons)) {
+            $coupons = preg_split('/[\r\n,]+/', $coupons) ?: [];
+        }
+
+        if (!is_array($coupons)) {
+            return [];
+        }
+
+        $sanitized = [];
+
+        foreach ($coupons as $coupon) {
+            if (!is_scalar($coupon)) {
+                continue;
+            }
+
+            $coupon = trim((string) $coupon);
+
+            if ('' === $coupon) {
+                continue;
+            }
+
+            if (function_exists('wc_format_coupon_code')) {
+                $coupon = wc_format_coupon_code($coupon);
+            }
+
+            if ('' === $coupon) {
+                continue;
+            }
+
+            $sanitized[$coupon] = $coupon;
+        }
+
+        return array_values($sanitized);
+    }
+
+    private function generate_rank_coupon_signature(?array $rank, array $coupons): string
+    {
+        if (null === $rank) {
+            return '';
+        }
+
+        $parts = [
+            (string) ($rank['name'] ?? ''),
+            (string) ($rank['threshold'] ?? ''),
+            implode('|', $coupons),
+        ];
+
+        return hash('sha256', implode('::', $parts));
     }
 
     public function render_top_customers_shortcode(array $atts = []): string

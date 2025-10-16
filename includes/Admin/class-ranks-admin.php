@@ -88,6 +88,7 @@ class Ranks_Admin
 
         $names      = isset($_POST['ranks']['name']) ? (array) $_POST['ranks']['name'] : [];
         $thresholds = isset($_POST['ranks']['threshold']) ? (array) $_POST['ranks']['threshold'] : [];
+        $coupons    = isset($_POST['ranks']['coupons']) ? (array) $_POST['ranks']['coupons'] : [];
 
         $ranks = [];
         foreach ($names as $index => $name) {
@@ -95,6 +96,8 @@ class Ranks_Admin
             $threshold_raw = $thresholds[$index] ?? '';
             $threshold_raw = is_scalar($threshold_raw) ? wp_unslash((string) $threshold_raw) : '';
             $threshold     = is_numeric($threshold_raw) ? (float) $threshold_raw : 0.0;
+            $coupon_raw    = $coupons[$index] ?? '';
+            $coupon_raw    = is_scalar($coupon_raw) ? wp_unslash((string) $coupon_raw) : '';
 
             if ('' === $name) {
                 continue;
@@ -103,6 +106,7 @@ class Ranks_Admin
             $ranks[] = [
                 'name'      => $name,
                 'threshold' => max(0.0, $threshold),
+                'coupons'   => $coupon_raw,
             ];
         }
 
