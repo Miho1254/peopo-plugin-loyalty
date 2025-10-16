@@ -26,6 +26,7 @@ class Admin
         add_action('save_post_' . Reward_CPT::POST_TYPE, [$this, 'save_reward_meta'], 10, 2);
         add_filter('manage_' . Reward_CPT::POST_TYPE . '_posts_columns', [$this, 'manage_columns']);
         add_action('manage_' . Reward_CPT::POST_TYPE . '_posts_custom_column', [$this, 'render_columns'], 10, 2);
+        add_action('admin_menu', [$this, 'register_admin_pages']);
 
         add_action('show_user_profile', [$this, 'render_user_profile']);
         add_action('edit_user_profile', [$this, 'render_user_profile']);
@@ -37,7 +38,7 @@ class Admin
 
     public function enqueue_assets(string $hook): void
     {
-        if (!in_array($hook, ['user-edit.php', 'profile.php', 'post.php', 'post-new.php'], true)) {
+        if (!in_array($hook, ['user-edit.php', 'profile.php', 'post.php', 'post-new.php', 'woocommerce_page_rewardx-nfc-urls'], true)) {
             return;
         }
 
@@ -234,6 +235,74 @@ class Admin
             'balance' => $result,
             'message' => __('Cập nhật điểm thành công.', 'woo-rewardx-lite'),
         ]);
+    }
+
+    public function register_admin_pages(): void
+    {
+        if (!$this->current_user_can_manage()) {
+            return;
+        }
+
+        add_submenu_page(
+            'woocommerce',
+            __('URL NFC khách hàng', 'woo-rewardx-lite'),
+            __('URL NFC khách hàng', 'woo-rewardx-lite'),
+            'read',
+            'rewardx-nfc-urls',
+            [$this, 'render_nfc_page']
+        );
+    }
+
+    public function render_nfc_page(): void
+    {
+        if (!$this->current_user_can_manage()) {
+            wp_die(esc_html__('Bạn không có quyền truy cập trang này.', 'woo-rewardx-lite'));
+        }
+
+        $per_page = 20;
+        $paged    = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
+        $search   = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+
+        $args = [
+            'number'      => $per_page,
+            'offset'      => ($paged - 1) * $per_page,
+            'orderby'     => 'registered',
+            'order'       => 'DESC',
+            'count_total' => true,
+            'fields'      => ['ID', 'display_name', 'user_email'],
+        ];
+
+        if ('' !== $search) {
+            $args['search']         = '*' . $search . '*';
+            $args['search_columns'] = ['user_login', 'user_email', 'display_name'];
+        }
+
+        $query       = new \WP_User_Query($args);
+        $users       = $query->get_results();
+        $total       = (int) $query->get_total();
+        $total_pages = (int) ceil($total / $per_page);
+        $pagination  = '';
+
+        if ($total_pages > 1) {
+            $add_args = ['page' => 'rewardx-nfc-urls'];
+
+            if ('' !== $search) {
+                $add_args['s'] = $search;
+            }
+
+            $pagination = paginate_links([
+                'base'      => add_query_arg('paged', '%#%'),
+                'format'    => '',
+                'current'   => $paged,
+                'total'     => $total_pages,
+                'add_args'  => $add_args,
+                'prev_text' => __('« Trước', 'woo-rewardx-lite'),
+                'next_text' => __('Sau »', 'woo-rewardx-lite'),
+                'type'      => 'list',
+            ]);
+        }
+
+        include REWARDX_PATH . 'includes/views/admin-nfc-urls.php';
     }
 
     private function current_user_can_manage(): bool
