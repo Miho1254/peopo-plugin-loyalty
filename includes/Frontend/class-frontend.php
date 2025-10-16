@@ -42,6 +42,7 @@ class Frontend
         add_action('wp_enqueue_scripts', [$this, 'register_shortcode_assets']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_nfc_assets']);
         add_action('init', [$this, 'register_shortcodes']);
+        add_action('parse_request', [$this, 'maybe_map_nfc_request']);
         add_filter('query_vars', [$this, 'register_query_vars']);
         add_filter('woocommerce_account_menu_items', [$this, 'add_account_menu']);
         add_action('woocommerce_account_rewardx_endpoint', [$this, 'render_account_page']);
@@ -242,7 +243,11 @@ class Frontend
             return null;
         }
 
-        return trailingslashit(home_url(self::NFC_ROUTE . '/' . $token));
+        if ('' === (string) get_option('permalink_structure')) {
+            return add_query_arg(self::NFC_QUERY_VAR, rawurlencode($token), home_url('/'));
+        }
+
+        return trailingslashit(home_url(self::NFC_ROUTE . '/' . rawurlencode($token)));
     }
 
     private function is_nfc_page(): bool
@@ -250,6 +255,42 @@ class Frontend
         $token = get_query_var(self::NFC_QUERY_VAR, '');
 
         return '' !== $token;
+    }
+
+    public function maybe_map_nfc_request($wp): void
+    {
+        if (!($wp instanceof \WP)) {
+            return;
+        }
+
+        $token = $wp->query_vars[self::NFC_QUERY_VAR] ?? '';
+
+        if ('' !== $token) {
+            return;
+        }
+
+        $request = isset($wp->request) ? trim((string) $wp->request, '/') : '';
+
+        if ('' === $request) {
+            return;
+        }
+
+        if (preg_match('#^index\.php/(.+)$#', $request, $matches)) {
+            $request = $matches[1];
+        }
+
+        if (!preg_match('#^' . preg_quote(self::NFC_ROUTE, '#') . '/([^/]+)$#', $request, $matches)) {
+            return;
+        }
+
+        $token = trim($matches[1]);
+
+        if ('' === $token) {
+            return;
+        }
+
+        $wp->query_vars[self::NFC_QUERY_VAR] = $token;
+        set_query_var(self::NFC_QUERY_VAR, $token);
     }
 
     private function resolve_nfc_profile(string $token): ?array
