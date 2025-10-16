@@ -279,11 +279,13 @@ class Frontend
             $request = $matches[1];
         }
 
-        if (!preg_match('#^' . preg_quote(self::NFC_ROUTE, '#') . '/([^/]+)$#', $request, $matches)) {
+        $request = preg_replace('#(^|/)index\.php/#', '$1', $request);
+
+        if (!preg_match('#(^|/)' . preg_quote(self::NFC_ROUTE, '#') . '/([^/]+)$#', $request, $matches)) {
             return;
         }
 
-        $token = trim($matches[1]);
+        $token = trim($matches[2]);
 
         if ('' === $token) {
             return;
@@ -291,6 +293,11 @@ class Frontend
 
         $wp->query_vars[self::NFC_QUERY_VAR] = $token;
         set_query_var(self::NFC_QUERY_VAR, $token);
+
+        if (empty($wp->matched_rule)) {
+            $wp->matched_rule  = self::NFC_ROUTE . '/%token%';
+            $wp->matched_query = self::NFC_QUERY_VAR . '=' . $token;
+        }
     }
 
     private function resolve_nfc_profile(string $token): ?array
