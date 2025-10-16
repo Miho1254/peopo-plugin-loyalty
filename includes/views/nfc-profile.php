@@ -31,9 +31,7 @@ $error_message = $error_message ?? null;
         $rank_name   = is_array($rank) && isset($rank['name']) ? (string) $rank['name'] : __('Chưa xếp hạng', 'woo-rewardx-lite');
         $rank_no     = isset($profile['rank_position']) ? (int) $profile['rank_position'] : null;
         $rank_total  = isset($profile['rank_total']) ? (int) $profile['rank_total'] : 0;
-        $phone       = isset($profile['phone']) ? (string) $profile['phone'] : '';
         $name        = isset($profile['name']) ? (string) $profile['name'] : '';
-        $email       = isset($profile['email']) ? (string) $profile['email'] : '';
         $ocg         = $profile['ocg_remaining'] ?? null;
         ?>
         <header class="rewardx-nfc-header">
@@ -42,33 +40,67 @@ $error_message = $error_message ?? null;
         </header>
 
         <section class="rewardx-account rewardx-nfc-account">
+            <section class="rewardx-nfc-hero" aria-label="<?php esc_attr_e('Thông tin nhận diện thành viên', 'woo-rewardx-lite'); ?>">
+                <article class="rewardx-nfc-identity">
+                    <span class="rewardx-nfc-eyebrow"><?php esc_html_e('Thành viên Peopo Loyalty', 'woo-rewardx-lite'); ?></span>
+                    <h2 class="rewardx-nfc-name">
+                        <?php
+                        echo esc_html(
+                            '' !== $name
+                                ? $name
+                                : __('Khách hàng chưa cập nhật tên', 'woo-rewardx-lite')
+                        );
+                        ?>
+                    </h2>
+                    <?php if ('' !== $rank_name) : ?>
+                        <span class="rewardx-nfc-rank-badge"><?php echo esc_html($rank_name); ?></span>
+                    <?php endif; ?>
+                    <?php if ($rank_no && $rank_total) : ?>
+                        <span class="rewardx-nfc-rank-meta">
+                            <?php
+                            printf(
+                                esc_html__('Thứ tự hiện tại: %1$d / %2$d thành viên', 'woo-rewardx-lite'),
+                                $rank_no,
+                                $rank_total
+                            );
+                            ?>
+                        </span>
+                    <?php endif; ?>
+                </article>
+
+                <article class="rewardx-nfc-hero-card" aria-live="polite">
+                    <span class="rewardx-nfc-hero-label"><?php esc_html_e('Điểm tích lũy', 'woo-rewardx-lite'); ?></span>
+                    <strong class="rewardx-nfc-hero-value"><?php echo esc_html(number_format_i18n($points)); ?></strong>
+                    <span class="rewardx-nfc-hero-note"><?php esc_html_e('Được cập nhật theo thời gian thực từ hệ thống Peopo Loyalty.', 'woo-rewardx-lite'); ?></span>
+                </article>
+            </section>
+
             <section class="rewardx-summary" aria-label="<?php esc_attr_e('Thông tin tổng quan', 'woo-rewardx-lite'); ?>">
                 <ul class="rewardx-summary-list">
                     <li>
-                        <span class="rewardx-summary-label"><?php esc_html_e('Họ tên', 'woo-rewardx-lite'); ?></span>
-                        <strong class="rewardx-summary-value"><?php echo esc_html($name); ?></strong>
-                    </li>
-                    <li>
                         <span class="rewardx-summary-label"><?php esc_html_e('Điểm hiện tại', 'woo-rewardx-lite'); ?></span>
                         <strong class="rewardx-summary-value rewardx-points"><?php echo esc_html(number_format_i18n($points)); ?></strong>
+                        <small class="rewardx-summary-subtext"><?php esc_html_e('Tính cả điểm thưởng và điểm quy đổi.', 'woo-rewardx-lite'); ?></small>
                     </li>
                     <li>
                         <span class="rewardx-summary-label"><?php esc_html_e('Tổng chi tiêu', 'woo-rewardx-lite'); ?></span>
                         <strong class="rewardx-summary-value"><?php echo wp_kses_post($format_currency($total_spent)); ?></strong>
+                        <small class="rewardx-summary-subtext"><?php esc_html_e('Lũy kế toàn bộ đơn hàng đã hoàn tất.', 'woo-rewardx-lite'); ?></small>
                     </li>
                     <li>
                         <span class="rewardx-summary-label"><?php esc_html_e('Tổng đơn hàng', 'woo-rewardx-lite'); ?></span>
                         <strong class="rewardx-summary-value"><?php echo esc_html(number_format_i18n($order_count)); ?></strong>
+                        <small class="rewardx-summary-subtext"><?php esc_html_e('Bao gồm cả đơn hàng mua trực tiếp và trực tuyến.', 'woo-rewardx-lite'); ?></small>
                     </li>
                     <li>
                         <span class="rewardx-summary-label"><?php esc_html_e('Thứ hạng hiện tại', 'woo-rewardx-lite'); ?></span>
                         <strong class="rewardx-summary-value">
                             <?php echo esc_html($rank_name); ?>
                             <?php if ($rank_no && $rank_total) : ?>
-                                <small style="display:block;font-size:0.85rem;color:var(--rx-muted);font-weight:500;">
+                                <small class="rewardx-summary-subtext">
                                     <?php
                                     printf(
-                                        esc_html__('Thứ tự: %1$d / %2$d', 'woo-rewardx-lite'),
+                                        esc_html__('Đang ở vị trí %1$d trong %2$d thành viên tích cực.', 'woo-rewardx-lite'),
                                         $rank_no,
                                         $rank_total
                                     );
@@ -78,17 +110,6 @@ $error_message = $error_message ?? null;
                         </strong>
                     </li>
                 </ul>
-            </section>
-
-            <section class="rewardx-nfc-meta" aria-label="<?php esc_attr_e('Thông tin liên hệ', 'woo-rewardx-lite'); ?>">
-                <article class="rewardx-nfc-meta-card">
-                    <strong><?php esc_html_e('Số điện thoại', 'woo-rewardx-lite'); ?></strong>
-                    <span><?php echo '' !== $phone ? esc_html($phone) : esc_html__('Chưa cập nhật', 'woo-rewardx-lite'); ?></span>
-                </article>
-                <article class="rewardx-nfc-meta-card">
-                    <strong><?php esc_html_e('Email đăng ký', 'woo-rewardx-lite'); ?></strong>
-                    <span><?php echo '' !== $email ? esc_html($email) : esc_html__('Chưa cập nhật', 'woo-rewardx-lite'); ?></span>
-                </article>
             </section>
 
             <?php if (is_array($ocg)) :
