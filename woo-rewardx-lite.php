@@ -80,3 +80,27 @@ add_action('plugins_loaded', static function (): void {
     $plugin->boot();
     $plugin->get_frontend()->hooks();
 });
+
+if (!function_exists('rewardx_get_nfc_profile_url')) {
+    function rewardx_get_nfc_profile_url($user_id): ?string
+    {
+        if (!is_numeric($user_id)) {
+            return null;
+        }
+
+        $user_id = (int) $user_id;
+
+        if ($user_id <= 0) {
+            return null;
+        }
+
+        $plugin = Plugin::instance();
+        $frontend = $plugin->get_frontend();
+
+        if (!method_exists($frontend, 'get_nfc_url_for_user')) {
+            return null;
+        }
+
+        return $frontend->get_nfc_url_for_user($user_id);
+    }
+}
