@@ -332,6 +332,13 @@ class Frontend
         }
 
         $token = strtr($token, '-_', '+/');
+
+        $remainder = strlen($token) % 4;
+
+        if (0 !== $remainder) {
+            $token .= str_repeat('=', 4 - $remainder);
+        }
+
         $decoded = base64_decode($token, true);
 
         if (!is_string($decoded) || '' === $decoded) {
