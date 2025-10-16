@@ -582,6 +582,26 @@
 }
 
 @media (min-width: 1024px) {
+    .rewardx-overview {
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
+        gap: 2.75rem;
+        align-items: start;
+    }
+
+    .rewardx-summary {
+        margin: 0;
+    }
+
+    .rewardx-summary-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem 1.25rem;
+    }
+
+    .rewardx-summary-list li {
+        flex: initial;
+    }
+
     .rewardx-card-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1.25rem;
@@ -599,11 +619,8 @@
     }
 
     .rewardx-summary-list {
-        gap: 1rem 1.5rem;
-    }
-
-    .rewardx-summary-list li {
-        flex: 1 1 260px;
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+        gap: 1.25rem 1.5rem;
     }
 
     .rewardx-card-grid {
@@ -614,6 +631,32 @@
     .rewardx-grid {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 1.5rem;
+    }
+}
+
+@media (min-width: 1536px) {
+    .rewardx-account {
+        max-width: 1440px;
+        padding: 3.5rem 4rem 4.5rem;
+    }
+
+    .rewardx-overview {
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+        gap: 3rem;
+    }
+
+    .rewardx-summary-list {
+        grid-template-columns: repeat(4, minmax(220px, 1fr));
+    }
+
+    .rewardx-card-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.75rem;
+    }
+
+    .rewardx-grid {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.75rem;
     }
 }
 
