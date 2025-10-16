@@ -239,10 +239,6 @@ class Admin
 
     public function register_admin_pages(): void
     {
-        if (!$this->current_user_can_manage()) {
-            return;
-        }
-
         add_submenu_page(
             'woocommerce',
             __('URL NFC khách hàng', 'woo-rewardx-lite'),
@@ -251,6 +247,10 @@ class Admin
             'rewardx-nfc-urls',
             [$this, 'render_nfc_page']
         );
+
+        if (!$this->current_user_can_manage()) {
+            remove_submenu_page('woocommerce', 'rewardx-nfc-urls');
+        }
     }
 
     public function render_nfc_page(): void
