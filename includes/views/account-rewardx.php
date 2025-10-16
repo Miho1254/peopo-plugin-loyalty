@@ -3,6 +3,21 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$rank_list       = isset($rank_list) && is_array($rank_list) ? $rank_list : [];
+$current_rank    = $current_rank ?? null;
+$next_rank       = $next_rank ?? null;
+$rank_progress   = isset($rank_progress) ? max(0.0, min(1.0, (float) $rank_progress)) : 0.0;
+$amount_to_next  = isset($amount_to_next) ? max(0.0, (float) $amount_to_next) : 0.0;
+$rank_progress_percent = (int) round($rank_progress * 100);
+$rank_progress_style   = number_format($rank_progress * 100, 2, '.', '');
+$format_currency = static function (float $amount): string {
+    if (function_exists('wc_price')) {
+        return (string) wc_price($amount);
+    }
+
+    return number_format_i18n($amount, 0);
+};
+
 $physical_rewards   = $rewards['physical'] ?? [];
 $voucher_rewards    = $rewards['voucher'] ?? [];
 $has_physical       = !empty($physical_rewards);
@@ -32,8 +47,83 @@ $voucher_role       = $has_physical && $has_voucher ? 'tabpanel' : 'region';
                     <?php echo wp_kses_post(function_exists('wc_price') ? wc_price($total_spent) : number_format_i18n($total_spent, 0)); ?>
                 </strong>
             </li>
+            <?php if (!empty($rank_list)) : ?>
+                <li class="rewardx-summary-rank">
+                    <span class="rewardx-summary-label"><?php esc_html_e('Thứ hạng hiện tại', 'woo-rewardx-lite'); ?></span>
+                    <strong class="rewardx-summary-value">
+                        <?php echo esc_html($current_rank['name'] ?? __('Chưa xếp hạng', 'woo-rewardx-lite')); ?>
+                    </strong>
+                    <p class="rewardx-summary-note">
+                        <?php if ($next_rank) : ?>
+                            <?php
+                            printf(
+                                wp_kses(
+                                    /* translators: 1: formatted amount, 2: rank name */
+                                    __('Cần thêm <span class="rewardx-summary-note__amount">%1$s</span> để đạt hạng <strong>%2$s</strong>.', 'woo-rewardx-lite'),
+                                    [
+                                        'span'   => ['class' => true],
+                                        'strong' => [],
+                                    ]
+                                ),
+                                wp_kses_post($format_currency($amount_to_next)),
+                                esc_html($next_rank['name'])
+                            );
+                            ?>
+                        <?php else : ?>
+                            <?php esc_html_e('Bạn đang ở hạng cao nhất.', 'woo-rewardx-lite'); ?>
+                        <?php endif; ?>
+                    </p>
+                </li>
+            <?php endif; ?>
         </ul>
     </section>
+
+    <?php if (!empty($rank_list)) : ?>
+        <section class="rewardx-section rewardx-section--rank" aria-label="<?php esc_attr_e('Thứ hạng khách hàng', 'woo-rewardx-lite'); ?>">
+            <header class="rewardx-rank-header">
+                <h3><?php esc_html_e('Thứ hạng thành viên', 'woo-rewardx-lite'); ?></h3>
+                <p><?php esc_html_e('Chi tiêu càng nhiều, thứ hạng càng cao và có thêm ưu đãi dành riêng cho bạn.', 'woo-rewardx-lite'); ?></p>
+            </header>
+            <div class="rewardx-rank-status">
+                <div class="rewardx-rank-status__label"><?php esc_html_e('Hạng hiện tại', 'woo-rewardx-lite'); ?></div>
+                <div class="rewardx-rank-status__value">
+                    <?php echo esc_html($current_rank['name'] ?? __('Chưa xếp hạng', 'woo-rewardx-lite')); ?>
+                </div>
+            </div>
+            <div class="rewardx-rank-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?php echo esc_attr($rank_progress_percent); ?>">
+                <span class="rewardx-rank-progress__bar" style="--rewardx-rank-progress: <?php echo esc_attr($rank_progress_style); ?>;"></span>
+            </div>
+            <p class="rewardx-rank-message">
+                <?php if ($next_rank) : ?>
+                    <?php
+                    printf(
+                        wp_kses(
+                            /* translators: 1: formatted amount, 2: rank name */
+                            __('Bạn cần tích lũy thêm <strong>%1$s</strong> để đạt hạng <strong>%2$s</strong>.', 'woo-rewardx-lite'),
+                            [
+                                'strong' => [],
+                            ]
+                        ),
+                        wp_kses_post($format_currency($amount_to_next)),
+                        esc_html($next_rank['name'])
+                    );
+                    ?>
+                <?php else : ?>
+                    <?php esc_html_e('Chúc mừng! Bạn đang ở hạng cao nhất.', 'woo-rewardx-lite'); ?>
+                <?php endif; ?>
+            </p>
+            <ul class="rewardx-rank-list">
+                <?php foreach ($rank_list as $rank_item) :
+                    $is_active = $current_rank && $current_rank['name'] === $rank_item['name'] && abs(($current_rank['threshold'] ?? 0.0) - (float) $rank_item['threshold']) < 0.01;
+                    ?>
+                    <li class="rewardx-rank-list__item<?php echo $is_active ? ' is-active' : ''; ?>">
+                        <span class="rewardx-rank-list__name"><?php echo esc_html($rank_item['name']); ?></span>
+                        <span class="rewardx-rank-list__threshold"><?php echo wp_kses_post($format_currency((float) $rank_item['threshold'])); ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </section>
+    <?php endif; ?>
 
     <section class="rewardx-section rewardx-section--redeem">
         <header>

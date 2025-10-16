@@ -92,6 +92,18 @@
     color: var(--rx-ink);
 }
 
+.rewardx-summary-note {
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+    color: var(--rx-muted);
+    line-height: 1.5;
+}
+
+.rewardx-summary-note__amount {
+    font-weight: 600;
+    color: var(--rx-accent);
+}
+
 .rewardx-overview-header {
     max-width: 520px;
     display: grid;
@@ -200,6 +212,106 @@
     display: grid;
     gap: 1.5rem;
     margin-bottom: 2.5rem;
+}
+
+.rewardx-section--rank {
+    background: var(--rx-surface);
+    border: 1px solid var(--rx-border);
+    border-radius: 22px;
+    padding: 1.75rem;
+    box-shadow: var(--rx-shadow);
+    gap: 1.25rem;
+}
+
+.rewardx-rank-header {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.rewardx-rank-header h3 {
+    margin: 0;
+}
+
+.rewardx-rank-header p {
+    margin: 0;
+    color: var(--rx-muted);
+    line-height: 1.6;
+}
+
+.rewardx-rank-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1.25rem;
+}
+
+.rewardx-rank-status__label {
+    font-size: 0.9rem;
+    color: var(--rx-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.rewardx-rank-status__value {
+    font-size: 1.45rem;
+    font-weight: 700;
+}
+
+.rewardx-rank-progress {
+    position: relative;
+    height: 10px;
+    background: rgba(148, 163, 184, 0.25);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.rewardx-rank-progress__bar {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.85), rgba(56, 189, 248, 0.85));
+    transform-origin: left center;
+    width: calc(var(--rewardx-rank-progress, 0) * 1%);
+}
+
+.rewardx-rank-message {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--rx-muted);
+}
+
+.rewardx-rank-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.rewardx-rank-list__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 16px;
+    background: rgba(241, 245, 249, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.rewardx-rank-list__item.is-active {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.35);
+}
+
+.rewardx-rank-list__name {
+    font-weight: 600;
+    color: var(--rx-ink);
+}
+
+.rewardx-rank-list__threshold {
+    font-size: 0.95rem;
+    color: var(--rx-muted);
 }
 
 .rewardx-section-header {
