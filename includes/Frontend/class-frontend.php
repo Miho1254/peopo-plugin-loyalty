@@ -39,6 +39,7 @@ class Frontend
         add_filter('woocommerce_account_menu_items', [$this, 'add_account_menu']);
         add_action('woocommerce_account_rewardx_endpoint', [$this, 'render_account_page']);
         add_action('template_redirect', [$this, 'maybe_apply_rank_coupons']);
+        add_filter('woocommerce_coupon_is_valid', [$this, 'validate_rank_coupon_for_user'], 10, 2);
     }
 
     public function register_shortcodes(): void
@@ -154,6 +155,66 @@ class Frontend
         $amount_to_next = null !== $next_threshold ? max(0.0, $next_threshold - $total_spent) : 0.0;
 
         include REWARDX_PATH . 'includes/views/account-rewardx.php';
+    }
+
+    public function validate_rank_coupon_for_user(bool $is_valid, $coupon): bool
+    {
+        if (!$is_valid) {
+            return false;
+        }
+
+        if (is_admin() && !(defined('DOING_AJAX') && DOING_AJAX)) {
+            return $is_valid;
+        }
+
+        if (!($coupon instanceof \WC_Coupon)) {
+            return $is_valid;
+        }
+
+        $code = $coupon->get_code();
+
+        if ('' === $code) {
+            return $is_valid;
+        }
+
+        $rank_for_coupon = $this->rank_manager->find_rank_by_coupon($code);
+
+        if (null === $rank_for_coupon) {
+            return $is_valid;
+        }
+
+        $error_message = __('Mã giảm giá này chỉ áp dụng cho thành viên đủ hạng.', 'woo-rewardx-lite');
+
+        if (!is_user_logged_in()) {
+            if (function_exists('wc_add_notice') && (!function_exists('wc_has_notice') || !wc_has_notice($error_message, 'error'))) {
+                wc_add_notice($error_message, 'error');
+            }
+
+            return false;
+        }
+
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            if (function_exists('wc_add_notice') && (!function_exists('wc_has_notice') || !wc_has_notice($error_message, 'error'))) {
+                wc_add_notice($error_message, 'error');
+            }
+
+            return false;
+        }
+
+        $total_spent  = function_exists('wc_get_customer_total_spent') ? (float) wc_get_customer_total_spent($user_id) : 0.0;
+        $current_rank = $this->rank_manager->get_rank_for_amount($total_spent);
+
+        if ($this->rank_manager->rank_includes_coupon($current_rank, $code)) {
+            return true;
+        }
+
+        if (function_exists('wc_add_notice') && (!function_exists('wc_has_notice') || !wc_has_notice($error_message, 'error'))) {
+            wc_add_notice($error_message, 'error');
+        }
+
+        return false;
     }
 
     public function maybe_apply_rank_coupons(): void
