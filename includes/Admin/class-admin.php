@@ -186,6 +186,9 @@ class Admin
         $points   = $this->points_manager->get_points($user->ID, false);
         $ledger   = $this->points_manager->get_recent_transactions($user->ID, 25);
         $settings = Plugin::instance()->get_settings()->get_settings();
+        $nfc_url  = function_exists('rewardx_get_nfc_profile_url')
+            ? rewardx_get_nfc_profile_url($user->ID)
+            : null;
 
         include REWARDX_PATH . 'includes/views/user-profile-points.php';
     }

@@ -14,6 +14,19 @@ if (!defined('ABSPATH')) {
     </tr>
 </table>
 
+<?php if (!empty($nfc_url)) : ?>
+    <h3><?php esc_html_e('Liên kết NFC', 'woo-rewardx-lite'); ?></h3>
+    <table class="form-table">
+        <tr>
+            <th><label for="rewardx_nfc_url"><?php esc_html_e('URL hồ sơ NFC', 'woo-rewardx-lite'); ?></label></th>
+            <td>
+                <input type="text" id="rewardx_nfc_url" class="large-text code" readonly value="<?php echo esc_attr($nfc_url); ?>" />
+                <p class="description"><?php esc_html_e('Sao chép đường dẫn này để ghi lên thẻ NFC hoặc gửi cho khách hàng.', 'woo-rewardx-lite'); ?></p>
+            </td>
+        </tr>
+    </table>
+<?php endif; ?>
+
 <h3><?php esc_html_e('Cộng / Trừ điểm nhanh', 'woo-rewardx-lite'); ?></h3>
 <div class="rewardx-adjust-points" data-user-id="<?php echo esc_attr($user->ID); ?>">
     <input type="number" class="rewardx-delta" placeholder="<?php esc_attr_e('Số điểm (+/-)', 'woo-rewardx-lite'); ?>" />

@@ -83,6 +83,7 @@ final class Plugin
         $instance->reward_cpt->register();
         $instance->transaction_cpt->register();
         $instance->frontend->register_endpoint();
+        $instance->frontend->register_nfc_route();
         flush_rewrite_rules();
     }
 

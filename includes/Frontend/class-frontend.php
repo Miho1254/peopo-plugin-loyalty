@@ -13,6 +13,10 @@ if (!defined('ABSPATH')) {
 
 class Frontend
 {
+    private const NFC_ROUTE      = 'peopo-nfc';
+    private const NFC_QUERY_VAR  = 'rewardx_nfc_token';
+    private const NFC_SEED       = 'peopostore';
+
     private Points_Manager $points_manager;
 
     private Rank_Manager $rank_manager;
@@ -33,12 +37,16 @@ class Frontend
         $this->hooks_registered = true;
 
         add_action('init', [$this, 'register_endpoint']);
+        add_action('init', [$this, 'register_nfc_route']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_enqueue_scripts', [$this, 'register_shortcode_assets']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_nfc_assets']);
         add_action('init', [$this, 'register_shortcodes']);
+        add_filter('query_vars', [$this, 'register_query_vars']);
         add_filter('woocommerce_account_menu_items', [$this, 'add_account_menu']);
         add_action('woocommerce_account_rewardx_endpoint', [$this, 'render_account_page']);
         add_action('template_redirect', [$this, 'maybe_apply_rank_coupons']);
+        add_action('template_redirect', [$this, 'maybe_render_nfc_page'], 0);
         add_filter('woocommerce_coupon_is_valid', [$this, 'validate_rank_coupon_for_user'], 10, 2);
     }
 
@@ -60,6 +68,22 @@ class Frontend
     public function register_endpoint(): void
     {
         add_rewrite_endpoint('rewardx', EP_ROOT | EP_PAGES);
+    }
+
+    public function register_nfc_route(): void
+    {
+        add_rewrite_rule(
+            '^' . self::NFC_ROUTE . '/([^/]+)/?$',
+            'index.php?' . self::NFC_QUERY_VAR . '=$matches[1]',
+            'top'
+        );
+    }
+
+    public function register_query_vars(array $vars): array
+    {
+        $vars[] = self::NFC_QUERY_VAR;
+
+        return $vars;
     }
 
     public function register_shortcode_assets(): void
@@ -101,6 +125,16 @@ class Frontend
                 'unknownError'   => __('Đã xảy ra lỗi không xác định. Vui lòng thử lại.', 'woo-rewardx-lite'),
             ],
         ]);
+    }
+
+    public function enqueue_nfc_assets(): void
+    {
+        if (!$this->is_nfc_page()) {
+            return;
+        }
+
+        wp_enqueue_style('rewardx-frontend', REWARDX_URL . 'assets/css/rewardx.css', [], REWARDX_VERSION);
+        wp_enqueue_style('rewardx-nfc', REWARDX_URL . 'assets/css/rewardx-nfc.css', ['rewardx-frontend'], REWARDX_VERSION);
     }
 
     public function add_account_menu(array $items): array
@@ -155,6 +189,191 @@ class Frontend
         $amount_to_next = null !== $next_threshold ? max(0.0, $next_threshold - $total_spent) : 0.0;
 
         include REWARDX_PATH . 'includes/views/account-rewardx.php';
+    }
+
+    public function maybe_render_nfc_page(): void
+    {
+        if (!$this->is_nfc_page()) {
+            return;
+        }
+
+        $token = get_query_var(self::NFC_QUERY_VAR);
+
+        $profile = $this->resolve_nfc_profile($token);
+        $error_message = null;
+
+        if (null === $profile) {
+            $error_message = __('Không tìm thấy thành viên phù hợp hoặc liên kết không hợp lệ.', 'woo-rewardx-lite');
+        }
+
+        global $wp_query;
+
+        if ($wp_query) {
+            if (null === $profile && method_exists($wp_query, 'set_404')) {
+                $wp_query->set_404();
+            } else {
+                $wp_query->is_404 = false;
+            }
+        }
+
+        status_header(null === $profile ? 404 : 200);
+        nocache_headers();
+
+        include REWARDX_PATH . 'includes/views/nfc-profile.php';
+
+        exit;
+    }
+
+    public function get_nfc_url_for_user(int $user_id): ?string
+    {
+        if ($user_id <= 0) {
+            return null;
+        }
+
+        $user = get_user_by('id', $user_id);
+
+        if (!$user || !is_email($user->user_email)) {
+            return null;
+        }
+
+        $token = $this->generate_nfc_token_for_email($user->user_email);
+
+        if ('' === $token) {
+            return null;
+        }
+
+        return trailingslashit(home_url(self::NFC_ROUTE . '/' . $token));
+    }
+
+    private function is_nfc_page(): bool
+    {
+        $token = get_query_var(self::NFC_QUERY_VAR, '');
+
+        return '' !== $token;
+    }
+
+    private function resolve_nfc_profile(string $token): ?array
+    {
+        $email = $this->decode_nfc_token($token);
+
+        if (null === $email) {
+            return null;
+        }
+
+        $user = get_user_by('email', $email);
+
+        if (!$user instanceof \WP_User) {
+            return null;
+        }
+
+        $user_id = (int) $user->ID;
+
+        $billing_first_name = (string) get_user_meta($user_id, 'billing_first_name', true);
+        $billing_last_name  = (string) get_user_meta($user_id, 'billing_last_name', true);
+        $display_name       = trim($billing_last_name . ' ' . $billing_first_name);
+
+        if ('' === $display_name) {
+            $display_name = $user->display_name ?: $user->user_login;
+        }
+
+        $phone       = (string) get_user_meta($user_id, 'billing_phone', true);
+        $points      = $this->points_manager->get_points($user_id);
+        $total_spent = function_exists('wc_get_customer_total_spent') ? (float) wc_get_customer_total_spent($user_id) : 0.0;
+        $order_count = function_exists('wc_get_customer_order_count') ? (int) wc_get_customer_order_count($user_id) : 0;
+
+        $rank_list     = $this->rank_manager->get_ranks();
+        $current_rank  = $this->rank_manager->get_rank_for_amount($total_spent);
+        $rank_position = null;
+
+        foreach ($rank_list as $index => $rank) {
+            if ($current_rank && $rank['name'] === $current_rank['name'] && abs(($rank['threshold'] ?? 0.0) - ($current_rank['threshold'] ?? 0.0)) < 0.01) {
+                $rank_position = $index + 1;
+                break;
+            }
+        }
+
+        $rank_total = count($rank_list);
+
+        $ocg_expires_at = (int) get_user_meta($user_id, 'ocg_expires_at', true);
+        $now             = current_time('timestamp');
+
+        $ocg_remaining = null;
+
+        if ($ocg_expires_at > 0) {
+            $is_active = $ocg_expires_at > $now;
+
+            $ocg_remaining = [
+                'expires_at' => $ocg_expires_at,
+                'is_active'  => $is_active,
+                'human_diff' => $is_active ? human_time_diff($now, $ocg_expires_at) : human_time_diff($ocg_expires_at, $now),
+            ];
+        }
+
+        return [
+            'name'          => $display_name,
+            'email'         => $email,
+            'phone'         => $phone,
+            'points'        => $points,
+            'total_spent'   => $total_spent,
+            'order_count'   => $order_count,
+            'current_rank'  => $current_rank,
+            'rank_position' => $rank_position,
+            'rank_total'    => $rank_total,
+            'ocg_remaining' => $ocg_remaining,
+        ];
+    }
+
+    private function decode_nfc_token(string $token): ?string
+    {
+        $token = trim($token);
+
+        if ('' === $token) {
+            return null;
+        }
+
+        $token = strtr($token, '-_', '+/');
+        $decoded = base64_decode($token, true);
+
+        if (!is_string($decoded) || '' === $decoded) {
+            return null;
+        }
+
+        $parts = explode('|', $decoded);
+
+        if (2 !== count($parts)) {
+            return null;
+        }
+
+        [$email, $signature] = $parts;
+        $email     = strtolower(trim($email));
+        $signature = trim($signature);
+
+        if (!is_email($email)) {
+            return null;
+        }
+
+        $expected = hash_hmac('sha256', $email, self::NFC_SEED);
+
+        if (!hash_equals($expected, $signature)) {
+            return null;
+        }
+
+        return $email;
+    }
+
+    private function generate_nfc_token_for_email(string $email): string
+    {
+        $email = strtolower(trim($email));
+
+        if (!is_email($email)) {
+            return '';
+        }
+
+        $signature = hash_hmac('sha256', $email, self::NFC_SEED);
+        $payload   = $email . '|' . $signature;
+        $token     = rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
+
+        return $token;
     }
 
     public function validate_rank_coupon_for_user(bool $is_valid, $coupon): bool
