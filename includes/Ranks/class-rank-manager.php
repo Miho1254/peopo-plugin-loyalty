@@ -30,6 +30,7 @@ class Rank_Manager
 
             $name      = isset($rank['name']) ? sanitize_text_field($rank['name']) : '';
             $threshold = isset($rank['threshold']) ? (float) $rank['threshold'] : 0.0;
+            $coupons   = $this->sanitize_coupons($rank['coupons'] ?? []);
 
             if ('' === $name) {
                 continue;
@@ -38,6 +39,7 @@ class Rank_Manager
             $ranks[] = [
                 'name'      => $name,
                 'threshold' => max(0.0, $threshold),
+                'coupons'   => $coupons,
             ];
         }
 
@@ -103,6 +105,7 @@ class Rank_Manager
 
             $name      = isset($rank['name']) ? sanitize_text_field($rank['name']) : '';
             $threshold = isset($rank['threshold']) ? (float) $rank['threshold'] : 0.0;
+            $coupons   = $this->sanitize_coupons($rank['coupons'] ?? []);
 
             if ('' === $name) {
                 continue;
@@ -111,6 +114,7 @@ class Rank_Manager
             $sanitized[] = [
                 'name'      => $name,
                 'threshold' => max(0.0, $threshold),
+                'coupons'   => $coupons,
             ];
         }
 
@@ -132,15 +136,60 @@ class Rank_Manager
             [
                 'name'      => __('Thành viên mới', 'woo-rewardx-lite'),
                 'threshold' => 0.0,
+                'coupons'   => [],
             ],
             [
                 'name'      => __('Đồng hành', 'woo-rewardx-lite'),
                 'threshold' => 2000000.0,
+                'coupons'   => [],
             ],
             [
                 'name'      => __('Đại sứ', 'woo-rewardx-lite'),
                 'threshold' => 5000000.0,
+                'coupons'   => [],
             ],
         ];
+    }
+
+    /**
+     * Chuẩn hóa danh sách coupon đi kèm thứ hạng.
+     */
+    private function sanitize_coupons($value): array
+    {
+        if (is_string($value)) {
+            $value = preg_split('/[\r\n,]+/', $value) ?: [];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $sanitized = [];
+
+        foreach ($value as $coupon) {
+            if (!is_scalar($coupon)) {
+                continue;
+            }
+
+            $coupon = trim((string) $coupon);
+
+            if ('' === $coupon) {
+                continue;
+            }
+
+            if (function_exists('wc_format_coupon_code')) {
+                $coupon = wc_format_coupon_code($coupon);
+            } else {
+                $coupon = sanitize_text_field($coupon);
+            }
+
+            if ('' === $coupon) {
+                continue;
+            }
+
+            $sanitized[$coupon] = $coupon;
+        }
+
+        return array_values($sanitized);
     }
 }

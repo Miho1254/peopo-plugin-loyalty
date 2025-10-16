@@ -21,7 +21,8 @@
 }
 
 .rewardx-ranks-page .rewardx-ranks-table input[type="text"],
-.rewardx-ranks-page .rewardx-ranks-table input[type="number"] {
+.rewardx-ranks-page .rewardx-ranks-table input[type="number"],
+.rewardx-ranks-page .rewardx-ranks-table textarea {
     width: 100%;
 }
 

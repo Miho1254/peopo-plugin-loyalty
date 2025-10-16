@@ -47,12 +47,22 @@ $format_decimal = static function (float $value): string {
                     <th scope="col" class="column-threshold">
                         <?php esc_html_e('Tổng chi tiêu tối thiểu', 'woo-rewardx-lite'); ?>
                     </th>
+                    <th scope="col" class="column-coupons">
+                        <?php esc_html_e('Coupon mặc định', 'woo-rewardx-lite'); ?>
+                    </th>
                     <th scope="col" class="column-actions">&nbsp;</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($ranks as $rank) :
                     $row_id = md5($rank['name'] . $rank['threshold'] . wp_rand());
+                    $coupon_value = '';
+
+                    if (isset($rank['coupons'])) {
+                        $coupon_list = is_array($rank['coupons']) ? $rank['coupons'] : [$rank['coupons']];
+                        $coupon_list = array_filter(array_map('strval', $coupon_list));
+                        $coupon_value = implode("\n", $coupon_list);
+                    }
                     ?>
                     <tr class="rewardx-rank-row">
                         <td class="column-primary">
@@ -87,6 +97,21 @@ $format_decimal = static function (float $value): string {
                             </div>
                             <p class="description">
                                 <?php esc_html_e('Khách hàng phải tích lũy ít nhất số tiền này để đạt hạng.', 'woo-rewardx-lite'); ?>
+                            </p>
+                        </td>
+                        <td class="column-coupons">
+                            <label class="screen-reader-text" for="rewardx-rank-coupons-<?php echo esc_attr($row_id); ?>">
+                                <?php esc_html_e('Coupon mặc định', 'woo-rewardx-lite'); ?>
+                            </label>
+                            <textarea
+                                id="rewardx-rank-coupons-<?php echo esc_attr($row_id); ?>"
+                                name="ranks[coupons][]"
+                                rows="3"
+                                class="large-text"
+                                placeholder="COUPON_A\nCOUPON_B"
+                            ><?php echo esc_textarea($coupon_value); ?></textarea>
+                            <p class="description">
+                                <?php esc_html_e('Nhập mã coupon mặc định (phân tách bằng dấu phẩy hoặc xuống dòng) sẽ tự động áp dụng khi khách hàng đạt hạng này.', 'woo-rewardx-lite'); ?>
                             </p>
                         </td>
                         <td class="column-actions">
@@ -141,6 +166,21 @@ $format_decimal = static function (float $value): string {
             </div>
             <p class="description">
                 <?php esc_html_e('Khách hàng phải tích lũy ít nhất số tiền này để đạt hạng.', 'woo-rewardx-lite'); ?>
+            </p>
+        </td>
+        <td class="column-coupons">
+            <label class="screen-reader-text" for="rewardx-rank-coupons-{{ data.id }}">
+                <?php esc_html_e('Coupon mặc định', 'woo-rewardx-lite'); ?>
+            </label>
+            <textarea
+                id="rewardx-rank-coupons-{{ data.id }}"
+                name="ranks[coupons][]"
+                rows="3"
+                class="large-text"
+                placeholder="COUPON_A\nCOUPON_B"
+            ></textarea>
+            <p class="description">
+                <?php esc_html_e('Nhập mã coupon mặc định (phân tách bằng dấu phẩy hoặc xuống dòng) sẽ tự động áp dụng khi khách hàng đạt hạng này.', 'woo-rewardx-lite'); ?>
             </p>
         </td>
         <td class="column-actions">
