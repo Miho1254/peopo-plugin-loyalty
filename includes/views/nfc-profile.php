@@ -36,7 +36,6 @@ $error_message = $error_message ?? null;
         ?>
         <header class="rewardx-nfc-header">
             <h1><?php esc_html_e('Hồ sơ thành viên Peopo Loyalty', 'woo-rewardx-lite'); ?></h1>
-            <p><?php esc_html_e('Thông tin tóm tắt được hiển thị khi quét thẻ NFC của khách hàng.', 'woo-rewardx-lite'); ?></p>
         </header>
 
         <section class="rewardx-account rewardx-nfc-account">
@@ -54,17 +53,6 @@ $error_message = $error_message ?? null;
                     </h2>
                     <?php if ('' !== $rank_name) : ?>
                         <span class="rewardx-nfc-rank-badge"><?php echo esc_html($rank_name); ?></span>
-                    <?php endif; ?>
-                    <?php if ($rank_no && $rank_total) : ?>
-                        <span class="rewardx-nfc-rank-meta">
-                            <?php
-                            printf(
-                                esc_html__('Thứ tự hiện tại: %1$d / %2$d thành viên', 'woo-rewardx-lite'),
-                                $rank_no,
-                                $rank_total
-                            );
-                            ?>
-                        </span>
                     <?php endif; ?>
                 </article>
 
