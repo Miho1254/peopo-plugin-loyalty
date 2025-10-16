@@ -84,17 +84,6 @@ $error_message = $error_message ?? null;
                         <span class="rewardx-summary-label"><?php esc_html_e('Thứ hạng hiện tại', 'woo-rewardx-lite'); ?></span>
                         <strong class="rewardx-summary-value">
                             <?php echo esc_html($rank_name); ?>
-                            <?php if ($rank_no && $rank_total) : ?>
-                                <small class="rewardx-summary-subtext">
-                                    <?php
-                                    printf(
-                                        esc_html__('Đang ở vị trí %1$d trong %2$d thành viên tích cực.', 'woo-rewardx-lite'),
-                                        $rank_no,
-                                        $rank_total
-                                    );
-                                    ?>
-                                </small>
-                            <?php endif; ?>
                         </strong>
                     </li>
                 </ul>
