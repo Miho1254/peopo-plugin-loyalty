@@ -36,6 +36,14 @@ Hệ thống đổi thưởng cho WooCommerce, sử dụng user meta và custom 
 * Người dùng đạt hạng cao nhất mà họ thỏa điều kiện; trang "Tài khoản" sẽ hiển thị hạng hiện tại, tiến độ lên hạng tiếp theo và bảng các hạng.
 * Dữ liệu lưu tại option `rewardx_ranks`, có thể xuất/nhập bằng các công cụ quản lý option nếu cần sao lưu.
 
+== Trang hồ sơ NFC ==
+
+* Plugin tạo route công khai `/peopo-nfc/{token}` với `{token}` là email khách hàng được mã hóa bằng seed "peopostore".
+* Token được tạo bằng hàm trợ giúp `rewardx_get_nfc_profile_url( $user_id )`, trả về URL đầy đủ dùng để ghi lên NFC tag.
+* Khi người xem truy cập URL hợp lệ, trang sẽ hiển thị họ tên (từ dữ liệu thanh toán), số điện thoại, tổng số điểm, tổng chi tiêu, số đơn hàng và thứ hạng hiện tại.
+* Khối thông tin OCG lấy từ meta `ocg_expires_at` của plugin Peopo OCG, tự động hiển thị thời gian còn lại hoặc trạng thái đã hết hạn.
+* Nếu email bị thay đổi, token mới sẽ được tạo lại tự động khi gọi hàm trên; cập nhật NFC tag để đảm bảo khách hàng truy cập đúng hồ sơ.
+
 == Hooks & Filters ==
 
 * `rewardx_settings` – Option chứa toàn bộ cấu hình plugin.
