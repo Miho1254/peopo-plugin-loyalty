@@ -171,17 +171,7 @@ class Rank_Manager
                 continue;
             }
 
-            $coupon = trim((string) $coupon);
-
-            if ('' === $coupon) {
-                continue;
-            }
-
-            if (function_exists('wc_format_coupon_code')) {
-                $coupon = wc_format_coupon_code($coupon);
-            } else {
-                $coupon = sanitize_text_field($coupon);
-            }
+            $coupon = $this->normalize_coupon_code((string) $coupon);
 
             if ('' === $coupon) {
                 continue;
@@ -191,5 +181,54 @@ class Rank_Manager
         }
 
         return array_values($sanitized);
+    }
+
+    public function find_rank_by_coupon(string $coupon_code): ?array
+    {
+        $coupon_code = $this->normalize_coupon_code($coupon_code);
+
+        if ('' === $coupon_code) {
+            return null;
+        }
+
+        foreach ($this->get_ranks() as $rank) {
+            if (in_array($coupon_code, $rank['coupons'], true)) {
+                return $rank;
+            }
+        }
+
+        return null;
+    }
+
+    public function rank_includes_coupon(?array $rank, string $coupon_code): bool
+    {
+        if (null === $rank) {
+            return false;
+        }
+
+        $coupon_code = $this->normalize_coupon_code($coupon_code);
+
+        if ('' === $coupon_code) {
+            return false;
+        }
+
+        return in_array($coupon_code, $rank['coupons'] ?? [], true);
+    }
+
+    private function normalize_coupon_code(string $coupon): string
+    {
+        $coupon = trim($coupon);
+
+        if ('' === $coupon) {
+            return '';
+        }
+
+        if (function_exists('wc_format_coupon_code')) {
+            $coupon = wc_format_coupon_code($coupon);
+        } else {
+            $coupon = sanitize_text_field($coupon);
+        }
+
+        return $coupon;
     }
 }
