@@ -5,6 +5,7 @@ namespace RewardX\Frontend;
 use RewardX\CPT\Reward_CPT;
 use RewardX\Points\Points_Manager;
 use RewardX\Plugin;
+use RewardX\Ranks\Rank_Manager;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -13,11 +14,14 @@ if (!defined('ABSPATH')) {
 class Frontend
 {
     private Points_Manager $points_manager;
+
+    private Rank_Manager $rank_manager;
     private bool $hooks_registered = false;
 
-    public function __construct(Points_Manager $points_manager)
+    public function __construct(Points_Manager $points_manager, Rank_Manager $rank_manager)
     {
         $this->points_manager = $points_manager;
+        $this->rank_manager   = $rank_manager;
     }
 
     public function hooks(): void
@@ -131,6 +135,22 @@ class Frontend
         $rewards     = $this->get_rewards();
         $total_spent = function_exists('wc_get_customer_total_spent') ? (float) wc_get_customer_total_spent($user_id) : 0.0;
         $order_count = function_exists('wc_get_customer_order_count') ? (int) wc_get_customer_order_count($user_id) : 0;
+        $rank_list   = $this->rank_manager->get_ranks();
+        $current_rank = $this->rank_manager->get_rank_for_amount($total_spent);
+        $next_rank    = $this->rank_manager->get_next_rank($total_spent);
+
+        $current_threshold = $current_rank['threshold'] ?? 0.0;
+        $next_threshold    = $next_rank['threshold'] ?? null;
+
+        if (null !== $next_threshold && $next_threshold > $current_threshold) {
+            $rank_progress = max(0.0, min(1.0, ($total_spent - $current_threshold) / ($next_threshold - $current_threshold)));
+        } elseif (null === $next_threshold) {
+            $rank_progress = 1.0;
+        } else {
+            $rank_progress = 0.0;
+        }
+
+        $amount_to_next = null !== $next_threshold ? max(0.0, $next_threshold - $total_spent) : 0.0;
 
         include REWARDX_PATH . 'includes/views/account-rewardx.php';
     }

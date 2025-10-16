@@ -19,3 +19,18 @@
 .rewardx-adjust-points .rewardx-adjust-button {
     align-self: center;
 }
+
+.rewardx-ranks-page .rewardx-ranks-table input[type="text"],
+.rewardx-ranks-page .rewardx-ranks-table input[type="number"] {
+    width: 100%;
+}
+
+.rewardx-ranks-page .rewardx-rank-amount {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rewardx-ranks-page .rewardx-rank-amount__symbol {
+    font-weight: 600;
+}
